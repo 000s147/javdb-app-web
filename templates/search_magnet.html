@@ -1,0 +1,416 @@
+{% extends "base.html" %}
+
+{% block title %}找磁链 - JavDB{% endblock %}
+
+{% block styles %}
+    <style>
+        .magnet-card {
+            border-left: 4px solid #0d6efd !important;
+        }
+        .magnet-card:hover {
+            background-color: #f8f9fa !important;
+        }
+        .hash-text {
+            font-family: monospace;
+            font-size: 0.9rem;
+            word-break: break-all;
+        }
+        .size-badge {
+            font-weight: 600;
+        }
+        .filter-toolbar {
+            background: #fff;
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
+        }
+        /* ===== 排序/每页条数 Radio 按钮样式（与演员页统一） ===== */
+        .custom-radio-label {
+            border: 1px solid #dee2e6 !important;
+            background-color: #f8f9fa !important;
+            border-radius: 0.375rem;
+            color: #212529 !important;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            padding: 4px 12px;
+        }
+        .btn-check:not(:checked) + .custom-radio-label:hover {
+            background-color: #e9ecef !important;
+        }
+        .btn-check:checked + .custom-radio-label {
+            background-color: #0d6efd !important;
+            color: #fff !important;
+            border-color: #0d6efd !important;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4 text-center" id="goToTop">🧲 找磁链</h1>
+
+    <div class="row mb-3 justify-content-center">
+        <div class="col-md-6">
+            <div class="input-group input-group-lg shadow-sm">
+                <input type="text" id="keywordInput" class="form-control" placeholder="输入关键词搜索磁链...">
+                <button class="btn btn-primary px-4" onclick="doSearch(1)">搜索</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 筛选工具栏（Radio 版本） ===== -->
+    <div class="filter-toolbar d-flex flex-wrap align-items-center gap-3 mb-4">
+        <!-- 排序 -->
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <span class="fw-bold text-muted small">排序：</span>
+            <input type="radio" class="btn-check sort-radio" name="magnetSort" id="sort_relevance" value="relevance" checked>
+            <label class="btn custom-radio-label btn-sm" for="sort_relevance">相关度</label>
+
+            <input type="radio" class="btn-check sort-radio" name="magnetSort" id="sort_created" value="created">
+            <label class="btn custom-radio-label btn-sm" for="sort_created">时间</label>
+
+            <input type="radio" class="btn-check sort-radio" name="magnetSort" id="sort_files" value="files">
+            <label class="btn custom-radio-label btn-sm" for="sort_files">文件数</label>
+
+            <input type="radio" class="btn-check sort-radio" name="magnetSort" id="sort_size" value="size">
+            <label class="btn custom-radio-label btn-sm" for="sort_size">文件大小</label>
+        </div>
+
+        <!-- 每页条数 -->
+        <div class="d-flex flex-wrap align-items-center gap-2" style="margin-left: 2rem;">
+            <span class="fw-bold text-muted small">每页显示数量：</span>
+            <input type="radio" class="btn-check limit-radio" name="magnetLimit" id="limit_12" value="12">
+            <label class="btn custom-radio-label btn-sm" for="limit_12">12</label>
+
+            <input type="radio" class="btn-check limit-radio" name="magnetLimit" id="limit_24" value="24" checked>
+            <label class="btn custom-radio-label btn-sm" for="limit_24">24</label>
+
+            <input type="radio" class="btn-check limit-radio" name="magnetLimit" id="limit_48" value="48">
+            <label class="btn custom-radio-label btn-sm" for="limit_48">48</label>
+
+            <input type="radio" class="btn-check limit-radio" name="magnetLimit" id="limit_96" value="96">
+            <label class="btn custom-radio-label btn-sm" for="limit_96">96</label>
+        </div>
+
+        <button class="btn btn-outline-secondary btn-sm ms-auto" style="width: 100px;border-radius: 0.375rem;" onclick="clearSearch()">清空</button>
+    </div>
+
+    <div id="magnetContainerLoading" class="row"></div>
+
+    <div id="magnetContainer" class="row"></div>
+
+    <nav aria-label="Page navigation" class="mt-4 d-none" id="pagination">
+        <ul class="pagination justify-content-center mb-0" id="paginationList"></ul>
+    </nav>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentKeyword = '';
+    let currentPage = 1;
+
+    function debounce(func, wait) {
+        let timeout;
+        return function(...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+        };
+    }
+    const debouncedSearch = debounce(() => doSearch(1), 500);
+
+    // 输入框回车
+    document.getElementById('keywordInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') doSearch(1);
+    });
+
+    // ===== 监听排序 Radio 变化 =====
+    document.querySelectorAll('.sort-radio').forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (document.getElementById('keywordInput').value.trim()) {
+                showLoading();
+                debouncedSearch();
+            }
+        });
+    });
+
+    // ===== 监听每页条数 Radio 变化 =====
+    document.querySelectorAll('.limit-radio').forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (document.getElementById('keywordInput').value.trim()) {
+                showLoading();
+                debouncedSearch();
+            }
+        });
+    });
+
+    function showLoading() {
+        const containerLD = document.getElementById('magnetContainerLoading');
+        containerLD.innerHTML = `
+            <div class="col-12 text-center py-5">
+                <div class="spinner-border text-primary"></div>
+                <p class="mt-2 text-muted">加载中...</p>
+            </div>
+        `;
+        containerLD.classList.remove('d-none');
+        document.getElementById('pagination').classList.add('d-none');
+    }
+
+    function clearSearch() {
+        document.getElementById('keywordInput').value = '';
+        document.getElementById('magnetContainer').innerHTML = '';
+        document.getElementById('pagination').classList.add('d-none');
+        currentKeyword = '';
+        updateUrlParams(1);   // 🔑 新增：清空 URL 中的 q 参数
+
+        // ===== 新增：清空导航栏的关键词 =====
+        if (typeof window.updateNavbarSearch === 'function') {
+            window.updateNavbarSearch('', 'magnet');
+        }
+        document.title = '找磁链 - JavDB';
+    }
+
+    function doSearch(page) {
+        const kw = document.getElementById('keywordInput').value.trim();
+        if (!kw) {
+            clearSearch();               // 原有清空逻辑
+            updateUrlParams(1);          // 🔑 新增：移除 q 参数
+            return;
+        }
+        currentKeyword = kw;
+        currentPage = page;
+        executeSearch(page);
+        document.title = kw + ' - 找磁链 - JavDB';
+    }
+
+    async function executeSearch(page) {
+        // 🔑 新增：更新地址栏（在请求前）
+        updateUrlParams(page);
+
+        // ===== 新增：同步导航栏搜索状态 =====
+        if (typeof window.updateNavbarSearch === 'function') {
+            window.updateNavbarSearch(currentKeyword, 'magnet');
+        }
+
+        // ===== 从 Radio 获取排序和每页条数 =====
+        const sortRadio = document.querySelector('.sort-radio:checked');
+        const sortBy = sortRadio ? sortRadio.value : 'relevance';
+        const limitRadio = document.querySelector('.limit-radio:checked');
+        const limit = limitRadio ? parseInt(limitRadio.value, 10) : 24;
+
+        const containerLD = document.getElementById('magnetContainerLoading');
+        const container = document.getElementById('magnetContainer');
+        const paginationEl = document.getElementById('pagination');
+
+        containerLD.innerHTML = `
+            <div class="col-12 text-center py-5">
+                <div class="spinner-border text-primary"></div>
+                <p class="mt-2 text-muted">加载中...</p>
+            </div>
+        `;
+        containerLD.classList.remove('d-none');
+        paginationEl.classList.add('d-none');
+
+        document.getElementById('goToTop').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        const params = new URLSearchParams({
+            q: currentKeyword,
+            sort_by: sortBy,
+            page: page,
+            limit: limit
+        });
+
+        try {
+            const res = await fetch('/api/search_magnet?' + params.toString());
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message || '请求失败');
+
+            const magnets = data.data.magnets || [];
+            renderMagnets(magnets);
+            if (magnets.length > 0) {
+                renderPagination(page, magnets.length, limit);
+                paginationEl.classList.remove('d-none');
+            } else {
+                paginationEl.classList.add('d-none');
+            }
+        } catch (e) {
+            container.innerHTML = `<div class="col-12 text-center text-danger py-5">搜索失败：${e.message}</div>`;
+        }
+        fadeOut(containerLD);
+        document.title = currentKeyword + ' - 找磁链 - JavDB';
+    }
+
+    function renderMagnets(magnets) {
+        const container = document.getElementById('magnetContainer');
+        container.innerHTML = '';
+
+        if (!magnets || magnets.length === 0) {
+            container.innerHTML = '<div class="col-12 text-center text-muted py-5">未找到相关磁链</div>';
+            return;
+        }
+
+        magnets.forEach(m => {
+            const sizeStr = formatSize(m.size);
+            const formatter = new Intl.DateTimeFormat('zh-CN', {
+              timeZone: 'Asia/Shanghai',
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: false
+            });
+            const created = formatter.format(new Date(m.created_at));
+
+            container.innerHTML += `
+                <div class="col-12 mb-2">
+                    <div class="card magnet-card shadow-sm border-0 p-2">
+                        <div class="row g-0 align-items-center mt-2 mb-1">
+                            <div class="col-md-9">
+                                <div class="card-title fw-bold mb-3">${escapeHtml(m.title)}</div>
+                                <div class="d-flex flex-wrap gap-3 small text-muted" style="font-size: 13px;">
+                                    <span><span class="fw-bold">文件数：</span>${m.files_count}</span>
+                                    <span><span class="fw-bold">大小：</span><span class="size-badge">${sizeStr}</span></span>
+                                    <span><span class="fw-bold">创建：</span>${created}</span>
+                                </div>
+                            </div>
+                            <div class="col-md-3 text-md-end mt-2 mt-md-0">
+                                <button class="btn btn-primary btn-sm" style="width: 90px;" onclick="copyMagnet('magnet:?xt=urn:btih:${m.hash}', this)">复制磁链</button>
+                                <a href="magnet:?xt=urn:btih:${m.hash}" class="btn btn-success btn-sm ms-1">磁力链接</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    function formatSize(sizeMB) {
+        if (sizeMB >= 1024) return (sizeMB / 1024).toFixed(2) + ' GB';
+        return sizeMB.toFixed(0) + ' MB';
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function copyMagnet(magnet, btn) {
+        navigator.clipboard.writeText(magnet).then(() => {
+            btn.textContent = "已复制";
+            btn.classList.add('bg-secondary')
+        }).catch(() => {
+            window.prompt(
+                "复制失败，请手动复制以下磁力链接（Ctrl+C 或 长按 复制）：",
+                magnet
+            );
+        });
+    }
+
+    // ===== 分页渲染（支持动态 limit） =====
+    function renderPagination(currentPage, loadedCount, limit) {
+        const paginationUl = document.getElementById('paginationList');
+        paginationUl.innerHTML = '';
+
+        const isLastPage = loadedCount < limit;
+        const prevDisabled = currentPage <= 1 ? 'disabled' : '';
+
+        paginationUl.innerHTML += `
+            <li class="page-item ${prevDisabled}">
+                <a class="page-link" href="javascript:void(0)" onclick="if(${currentPage} > 1) doSearch(${currentPage - 1})">上一页</a>
+            </li>
+        `;
+
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = isLastPage ? currentPage : currentPage + 2;
+
+        for (let i = startPage; i <= endPage; i++) {
+            if (i === currentPage) {
+                paginationUl.innerHTML += `<li class="page-item active"><span class="page-link">${i}</span></li>`;
+            } else {
+                paginationUl.innerHTML += `<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="doSearch(${i})">${i}</a></li>`;
+            }
+        }
+
+        const nextDisabled = isLastPage ? 'disabled' : '';
+        paginationUl.innerHTML += `
+            <li class="page-item ${nextDisabled}">
+                <a class="page-link" href="javascript:void(0)" onclick="if(!${isLastPage}) doSearch(${currentPage + 1})">下一页</a>
+            </li>
+        `;
+
+        paginationUl.innerHTML += `
+            <li class="page-item ms-3 d-flex align-items-center">
+                <input type="number" id="jumpPageInput" class="form-control text-center px-1" style="width: 60px; height: 38px;" value="${currentPage + 1}" min="1">
+                <button class="btn btn-outline-primary ms-1" style="height: 38px;" onclick="jumpToPage()">跳转</button>
+            </li>
+        `;
+    }
+
+    function jumpToPage() {
+        const val = document.getElementById('jumpPageInput').value;
+        const p = parseInt(val, 10);
+        if (p && p > 0) doSearch(p);
+    }
+
+    function updateUrlParams(page) {
+        const kw = document.getElementById('keywordInput').value.trim();
+        const sortRadio = document.querySelector('.sort-radio:checked');
+        const sortBy = sortRadio ? sortRadio.value : 'relevance';
+        const limitRadio = document.querySelector('.limit-radio:checked');
+        const limit = limitRadio ? parseInt(limitRadio.value, 10) : 24;
+
+        const params = new URLSearchParams();
+        if (kw) params.set('q', kw);
+        if (sortBy !== 'relevance') params.set('sort_by', sortBy);
+        if (limit !== 24) params.set('limit', limit);
+        if (page && page > 1) params.set('page', page);
+
+        const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+        history.replaceState({}, '', newUrl);
+    }
+
+    function fadeOut(element, duration = 1000) {
+        if (!element) return;
+        element.style.transition = `opacity ${duration}ms ease`;
+        element.style.opacity = '0';
+        setTimeout(() => {
+            element.classList.add('d-none');
+            element.style.opacity = '';
+            element.style.transition = '';
+        }, duration);
+    }
+
+    window.onload = function() {
+        const params = new URLSearchParams(window.location.search);
+
+        // 1. 关键词
+        const q = params.get('q') || '';
+        document.getElementById('keywordInput').value = q;
+        currentKeyword = q;   // 同步全局变量
+
+        // 2. 排序
+        const sortBy = params.get('sort_by') || 'relevance';
+        const sortRadio = document.querySelector(`.sort-radio[value="${sortBy}"]`);
+        if (sortRadio) sortRadio.checked = true;
+
+        // 3. 每页条数
+        const limit = params.get('limit') || '24';
+        const limitRadio = document.querySelector(`.limit-radio[value="${limit}"]`);
+        if (limitRadio) limitRadio.checked = true;
+
+        // 4. 页码
+        const page = parseInt(params.get('page')) || 1;
+
+        // 如果关键词非空，执行搜索
+        if (q) {
+            executeSearch(page);
+        } else {
+            // 显示空状态提示
+            document.getElementById('magnetContainer').innerHTML =
+                '<div class="col-12 text-center text-muted py-5">请输入关键词进行搜索</div>';
+            document.getElementById('pagination').classList.add('d-none');
+        }
+    };
+</script>
+{% endblock %}

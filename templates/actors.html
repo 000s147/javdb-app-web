@@ -1,0 +1,988 @@
+{% extends "base.html" %}
+
+{% block title %}演员 - JavDB{% endblock %}
+
+{% block styles %}
+    <style>
+        .actor-card { transition: transform 0.2s; border: 1px solid #e9ecef; }
+        .actor-card:hover { transform: scale(1.02); }
+        .actor-card img {
+            width: 220px;
+            height: 220px;
+            object-fit: cover;
+        }
+        /* 1. 卡片主体：强制弹性布局，锁死宽度边界 */
+        .actor-card .card-body,
+        .recommend-card .card-body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        /* 2. 强化版单行省略号（增加 max-width 和 !important 绝对锁死） */
+        .single-line-ellipsis {
+            width: 100%;
+            max-width: 100%;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            display: block;
+        }
+
+        /* 3. 别名占位符：不管有没有别名，都强制占领一定高度，确保徽章对齐 */
+        .other-name-placeholder {
+            min-height: 18px;
+            line-height: 18px;
+            margin-bottom: 6px;
+            width: 100%;
+        }
+
+        /* 4. 确保 a 标签包裹层也不会被内部文本撑宽 */
+        .card-link-block {
+            display: flex!important;
+            flex-direction: column;
+            align-items: center;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            margin: 0 auto;
+            text-decoration: none;
+            color: inherit;
+        }
+        .filter-section {
+            background: #fff;
+            padding: 20px 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
+        }
+        .filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px 20px;
+            margin-bottom: 14px;
+        }
+        .filter-item {
+            flex: 1 1 180px;
+            min-width: 150px;
+        }
+        .filter-item label {
+            display: block;
+            font-weight: 500;
+            font-size: 0.9rem;
+            margin-bottom: 2px;
+            color: #555;
+        }
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .slider-group input[type="range"] {
+            flex: 1;
+            min-width: 80px;
+        }
+        .slider-group .range-value {
+            min-width: 32px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #0d6efd;
+        }
+        .slider-group .range-sep {
+            color: #999;
+            font-weight: 300;
+        }
+        .btn-group-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 5px;
+        }
+        .tab-content {
+            margin-top: 20px;
+        }
+        /* 推荐卡片样式 */
+        .recommend-card { transition: transform 0.2s; border: 1px solid #e9ecef; }
+        .recommend-card:hover { transform: scale(1.02); }
+        .recommend-card img { width: 160px; height: 160px; object-fit: cover; }
+        .group-title {
+            font-weight: 600;
+            margin-top: 30px;
+            margin-bottom: 20px;
+            color: #0d6efd;
+            border-bottom: 2px solid #0d6efd;
+            padding-bottom: 6px;
+        }
+        .card-link-block {
+            margin: 0 auto;
+        }
+        .nav-link:hover {
+            transition: none !important;
+        }
+        /* 彻底清除导航选项卡切换时的闪烁、焦点残留和过渡动画 */
+        .nav-tabs .nav-link {
+            transition: none !important; /* 禁用所有属性的动画 */
+        }
+
+        /* 强制清除未激活标签的背景色和边框色 */
+        .nav-tabs .nav-link:not(.active) {
+            background-color: transparent !important;
+            border-color: transparent !important;
+            color: inherit; /* 保持文字原本颜色 */
+        }
+
+        /* 消除按钮点击后的焦点外发光和点击瞬间的默认样式 */
+        .nav-tabs .nav-link:focus,
+        .nav-tabs .nav-link:active {
+            box-shadow: none !important;
+            outline: none !important;
+        }
+
+        /* ===== 双滑块范围选择器自定义样式 ===== */
+        .dual-range-wrapper {
+            position: relative;
+            width: 100%;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            margin-top: 5px;
+        }
+
+        /* 底部灰色轨道 */
+        .dual-range-wrapper .slider-track {
+            position: absolute;
+            width: 100%;
+            height: 6px;
+            background-color: #e9ecef;
+            border-radius: 3px;
+            z-index: 1;
+        }
+
+        /* 两个滑块中间的蓝色选中区域 */
+        .dual-range-wrapper .slider-fill {
+            position: absolute;
+            height: 6px;
+            background-color: #0d6efd;
+            border-radius: 3px;
+            z-index: 2;
+        }
+
+        /* 隐藏原生轨道，保留滑块并允许鼠标穿透 */
+        .dual-range-wrapper input[type="range"] {
+            position: absolute;
+            width: 100%;
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            pointer-events: none; /* 重要：让鼠标穿透到下层 */
+            z-index: 3;
+            margin: 0;
+        }
+
+        /* 自定义滑块圆点 (Webkit/Chrome/Edge) */
+        .dual-range-wrapper input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            pointer-events: all; /* 恢复滑块自身的交互 */
+            width: 18px;
+            height: 18px;
+            background-color: #fff;
+            border: 2px solid #0d6efd;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        /* 自定义滑块圆点 (Firefox) */
+        .dual-range-wrapper input[type="range"]::-moz-range-thumb {
+            pointer-events: all;
+            width: 18px;
+            height: 18px;
+            background-color: #fff;
+            border: 2px solid #0d6efd;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        /* 优化标签与数值显示的布局 */
+        .filter-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 500;
+            font-size: 0.9rem;
+            color: #555;
+            margin-bottom: 2px;
+        }
+        .filter-item-header .range-text {
+            color: #0d6efd;
+            font-weight: 600;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4 text-center">🎭 演员</h1>
+
+    <!-- 选项卡导航 -->
+    <ul class="nav nav-tabs" id="actorTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'recommend' %}active{% endif %}" id="tab-recommend" data-bs-toggle="tab" data-bs-target="#panel-recommend" type="button" role="tab">🌟 推荐</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'actress' %}active{% endif %}" id="tab-actress" data-bs-toggle="tab" data-bs-target="#panel-actress" type="button" role="tab">👩 有码(女)</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'male' %}active{% endif %}" id="tab-male" data-bs-toggle="tab" data-bs-target="#panel-male" type="button" role="tab">👨 有码(男)</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'uncensored' %}active{% endif %}" id="tab-uncensored" data-bs-toggle="tab" data-bs-target="#panel-uncensored" type="button" role="tab">🔞 无码(女)</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'eu_female' %}active{% endif %}" id="tab-eu-female" data-bs-toggle="tab" data-bs-target="#panel-eu-female" type="button" role="tab">🌍 欧美(女)</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'eu_male' %}active{% endif %}" id="tab-eu-male" data-bs-toggle="tab" data-bs-target="#panel-eu-male" type="button" role="tab">🌍 欧美(男)</button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="actorTabContent">
+        <!-- 推荐面板 -->
+        <div class="tab-pane fade show {% if active_tab == 'recommend' %}active{% endif %}" id="panel-recommend" role="tabpanel">
+
+            <div id="recommend-loading" class="text-center py-5 mt-3">
+                <div class="spinner-border text-primary"></div>
+                <p class="mt-2 text-muted">加载中...</p>
+            </div>
+
+            <div id="recommend-error" class="text-center text-danger py-5 mt-3 d-none"></div>
+
+            <div id="recommend-content" class="d-none">
+                <div id="section-new" class="mb-5 mt-3">
+                    <h2 class="group-title">✨ 新人演员 (New)</h2>
+                    <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-6 g-3" id="container-new"></div>
+                </div>
+                <div id="section-monthly" class="mb-5">
+                    <h2 class="group-title">🔥 本月热度 (Monthly Hot)</h2>
+                    <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-6 g-3" id="container-monthly"></div>
+                </div>
+                <div id="section-recommend" class="mb-5">
+                    <h2 class="group-title">👍 推荐演员 (Recommended)</h2>
+                    <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-6 g-3" id="container-recommend"></div>
+                </div>
+            </div>
+
+        </div>
+        <!-- 女演员面板 -->
+        <div class="tab-pane fade show {% if active_tab == 'actress' %}active{% endif %}" id="panel-actress" role="tabpanel">
+            <!-- 女演员筛选控件 -->
+            <div class="filter-section border mt-3">
+                <div class="filter-row">
+                    <!-- 年龄 -->
+                    <div class="filter-item">
+                        <div class="filter-item-header">
+                            <label class="mb-0">年龄</label>
+                            <span class="range-text"><span id="ageMinVal">19</span> ~ <span id="ageMaxVal">65</span></span>
+                        </div>
+                        <div class="dual-range-wrapper">
+                            <div class="slider-track"></div>
+                            <div class="slider-fill" id="ageFill"></div>
+                            <input type="range" id="ageMin" min="19" max="65" value="19">
+                            <input type="range" id="ageMax" min="19" max="65" value="65">
+                        </div>
+                    </div>
+                    <!-- 身高 (cm) -->
+                    <div class="filter-item">
+                        <div class="filter-item-header">
+                            <label class="mb-0">身高 (cm)</label>
+                            <span class="range-text"><span id="heightMinVal">130</span> ~ <span id="heightMaxVal">185</span></span>
+                        </div>
+                        <div class="dual-range-wrapper">
+                            <div class="slider-track"></div>
+                            <div class="slider-fill" id="heightFill"></div>
+                            <input type="range" id="heightMin" min="130" max="185" value="130">
+                            <input type="range" id="heightMax" min="130" max="185" value="185">
+                        </div>
+                    </div>
+                    <div class="filter-item">
+                        <label>罩杯</label>
+                        <div class="slider-group">
+                            <select id="cupMin" class="form-select form-select-sm" style="width:70px;">
+                                <option value="A">A</option><option value="B">B</option><option value="C">C</option>
+                                <option value="D">D</option><option value="E">E</option><option value="F">F</option>
+                                <option value="G">G</option><option value="H">H</option><option value="I">I</option>
+                                <option value="J">J</option><option value="K">K</option><option value="L">L</option>
+                                <option value="M">M</option><option value="N">N</option><option value="O">O</option>
+                                <option value="P">P</option>
+                            </select>
+                            <span class="range-sep">~</span>
+                            <select id="cupMax" class="form-select form-select-sm" style="width:70px;">
+                                <option value="A">A</option><option value="B">B</option><option value="C">C</option>
+                                <option value="D">D</option><option value="E">E</option><option value="F">F</option>
+                                <option value="G">G</option><option value="H">H</option><option value="I">I</option>
+                                <option value="J">J</option><option value="K">K</option><option value="L">L</option>
+                                <option value="M">M</option><option value="N">N</option><option value="O">O</option>
+                                <option value="P" selected>P</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="filter-row">
+                    <!-- 胸围 (cm) -->
+                    <div class="filter-item">
+                        <div class="filter-item-header">
+                            <label class="mb-0">胸围 (cm)</label>
+                            <span class="range-text"><span id="bustMinVal">70</span> ~ <span id="bustMaxVal">120</span></span>
+                        </div>
+                        <div class="dual-range-wrapper">
+                            <div class="slider-track"></div>
+                            <div class="slider-fill" id="bustFill"></div>
+                            <input type="range" id="bustMin" min="70" max="120" value="70">
+                            <input type="range" id="bustMax" min="70" max="120" value="120">
+                        </div>
+                    </div>
+                    <!-- 腰围 (cm) -->
+                    <div class="filter-item">
+                        <div class="filter-item-header">
+                            <label class="mb-0">腰围 (cm)</label>
+                            <span class="range-text"><span id="waistMinVal">50</span> ~ <span id="waistMaxVal">90</span></span>
+                        </div>
+                        <div class="dual-range-wrapper">
+                            <div class="slider-track"></div>
+                            <div class="slider-fill" id="waistFill"></div>
+                            <input type="range" id="waistMin" min="50" max="90" value="50">
+                            <input type="range" id="waistMax" min="50" max="90" value="90">
+                        </div>
+                    </div>
+                    <!-- 臀围 (cm) -->
+                    <div class="filter-item">
+                        <div class="filter-item-header">
+                            <label class="mb-0">臀围 (cm)</label>
+                            <span class="range-text"><span id="hipsMinVal">70</span> ~ <span id="hipsMaxVal">120</span></span>
+                        </div>
+                        <div class="dual-range-wrapper">
+                            <div class="slider-track"></div>
+                            <div class="slider-fill" id="hipsFill"></div>
+                            <input type="range" id="hipsMin" min="70" max="120" value="70">
+                            <input type="range" id="hipsMax" min="70" max="120" value="120">
+                        </div>
+                    </div>
+                </div>
+                <div class="btn-group-actions">
+                    <button class="btn btn-outline-secondary btn-sm" onclick="resetFilters()">清空</button>
+                    <button class="btn btn-primary btn-sm" onclick="loadActress(1)">搜索</button>
+                </div>
+            </div>
+            <!-- 女演员列表容器 -->
+            <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-3" id="actressContainer"></div>
+            <nav aria-label="Page navigation" class="mt-4 d-none" id="actressPagination">
+                <ul class="pagination justify-content-center mb-0" id="actressPaginationList"></ul>
+            </nav>
+        </div>
+
+        <!-- 男演员面板 -->
+        <div class="tab-pane fade show {% if active_tab == 'male' %}active{% endif %}" id="panel-male" role="tabpanel">
+            <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-3 mt-2" id="maleContainer"></div>
+            <nav aria-label="Page navigation" class="mt-4 d-none" id="malePagination">
+                <ul class="pagination justify-content-center mb-0" id="malePaginationList"></ul>
+            </nav>
+        </div>
+
+        <!-- 无码演员面板 -->
+        <div class="tab-pane fade show {% if active_tab == 'uncensored' %}active{% endif %}" id="panel-uncensored" role="tabpanel">
+            <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-3 mt-2" id="uncensoredContainer"></div>
+            <nav aria-label="Page navigation" class="mt-4 d-none" id="uncensoredPagination">
+                <ul class="pagination justify-content-center mb-0" id="uncensoredPaginationList"></ul>
+            </nav>
+        </div>
+
+        <!-- 欧美女演员面板 -->
+        <div class="tab-pane fade show {% if active_tab == 'eu_female' %}active{% endif %}" id="panel-eu-female" role="tabpanel">
+            <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-3 mt-2" id="euFemaleContainer"></div>
+            <nav aria-label="Page navigation" class="mt-4 d-none" id="euFemalePagination">
+                <ul class="pagination justify-content-center mb-0" id="euFemalePaginationList"></ul>
+            </nav>
+        </div>
+
+        <!-- 欧美男演员面板 -->
+        <div class="tab-pane fade show {% if active_tab == 'eu_male' %}active{% endif %}" id="panel-eu-male" role="tabpanel">
+            <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-3 mt-2" id="euMaleContainer"></div>
+            <nav aria-label="Page navigation" class="mt-4 d-none" id="euMalePagination">
+                <ul class="pagination justify-content-center mb-0" id="euMalePaginationList"></ul>
+            </nav>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        // ========== 全局工具 ==========
+        function renderActorCards(actors, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            if (actors.length === 0) {
+                container.innerHTML = '<div class="col-12 text-center text-muted py-5" style="flex: 0 0 100%; max-width: 100%;">未找到演员</div>';
+                return;
+            }
+            actors.forEach(actor => {
+                const gender = actor.gender || 0;
+                const noAvatarImg = gender === 1 ? `{{ url_for('static', filename='images/male-avatar.jpg') }}` : `{{ url_for('static', filename='images/female-avatar.jpg') }}`;
+
+                const avatarFixed = `/api/image_proxy?url=${encodeURIComponent(actor.avatar_url)}`;
+
+                const otherNameHtml = actor.other_name
+                    ? `<div class="text-muted small single-line-ellipsis other-name-placeholder" title="${actor.other_name}">${actor.other_name}</div>`
+                    : `<div class="other-name-placeholder"></div>`;
+
+                container.innerHTML += `
+                    <div class="col">
+                        <div class="card h-100 actor-card">
+                            <a href="/actor/${actor.id}" class="card-link-block">
+                                <img src="${avatarFixed}" class="card-img-top" alt="${actor.name}" data-type="avatar" onerror="this.src='${noAvatarImg}'">
+                                <div class="card-body p-2 text-center">
+                                    <h6 class="card-title single-line-ellipsis mb-1" title="${actor.name}">${actor.name}</h6>
+                                    ${otherNameHtml}
+                                    <span class="badge bg-light text-dark border mt-auto">${actor.videos_count} 部</span>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function renderPagination(currentPage, loadedCount, paginationId, loadFunc) {
+            const limit = 30;
+            const paginationUl = document.getElementById(paginationId + 'List');
+            paginationUl.innerHTML = '';
+
+            const isLastPage = loadedCount < limit;
+            const prevDisabled = currentPage <= 1 ? 'disabled' : '';
+
+            paginationUl.innerHTML += `
+                <li class="page-item ${prevDisabled}">
+                    <a class="page-link" href="javascript:void(0)" onclick="if(${currentPage} > 1) ${loadFunc}(${currentPage - 1}, true)">上一页</a>
+                </li>
+            `;
+
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = isLastPage ? currentPage : currentPage + 2;
+
+            for (let i = startPage; i <= endPage; i++) {
+                if (i === currentPage) {
+                    paginationUl.innerHTML += `<li class="page-item active"><span class="page-link">${i}</span></li>`;
+                } else {
+                    paginationUl.innerHTML += `<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="${loadFunc}(${i}, true)">${i}</a></li>`;
+                }
+            }
+
+            const nextDisabled = isLastPage ? 'disabled' : '';
+            paginationUl.innerHTML += `
+                <li class="page-item ${nextDisabled}">
+                    <a class="page-link" href="javascript:void(0)" onclick="if(!${isLastPage}) ${loadFunc}(${currentPage + 1}, true)">下一页</a>
+                </li>
+            `;
+
+            paginationUl.innerHTML += `
+                <li class="page-item ms-3 d-flex align-items-center">
+                    <input type="number" class="jumpPageInput form-control text-center px-1" style="width: 60px; height: 38px;" value="${currentPage + 1}" min="1">
+                    <button class="btn btn-outline-primary ms-1" style="height: 38px;" onclick="jumpToPage('${paginationId}', '${loadFunc}')">跳转</button>
+                </li>
+            `;
+
+            document.getElementById(paginationId).classList.remove('d-none');
+        }
+
+        function jumpToPage(paginationId, loadFunc) {
+            const input = document.querySelector(`#${paginationId} .jumpPageInput`);
+            const val = input.value;
+            const p = parseInt(val, 10);
+            if (p && p > 0) {
+                const fn = window[loadFunc]; // 通过全局 window 对象获取函数
+                if (typeof fn === 'function') fn(p, true);
+            }
+        }
+
+        // ========== 自动同步 URL 工具 ==========
+        function syncUrl(tab, page, paramsStr) {
+            let newUrl = `/actors?tab=${tab}`;
+
+            // 推荐页不要 page 参数，其他页要
+            if (tab !== 'recommend' && page) {
+                newUrl += `&page=${page}`;
+            }
+
+            if (paramsStr) {
+                const cleanParams = new URLSearchParams(paramsStr);
+                cleanParams.delete('page');
+                cleanParams.delete('limit');
+                const extra = cleanParams.toString();
+                if (extra) newUrl += `&${extra}`;
+            }
+            window.history.replaceState(null, '', newUrl);
+        }
+
+        // ========== 推荐演员模块 ==========
+        function renderRecommendActors(actors, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            if (!actors || actors.length === 0) {
+                container.innerHTML = '<div class="col-12 text-muted ps-2">暂无数据</div>';
+                return;
+            }
+            actors.forEach(actor => {
+                const col = document.createElement('div');
+                col.className = 'col';
+                const gender = actor.gender || 0;
+                const noAvatarImg = gender === 1 ? `{{ url_for('static', filename='images/male-avatar.jpg') }}` : `{{ url_for('static', filename='images/female-avatar.jpg') }}`;
+                const avatarFixed = `/api/image_proxy?url=${encodeURIComponent(actor.avatar_url)}`;
+                col.innerHTML = `
+                    <div class="card h-100 recommend-card">
+                        <a href="/actor/${actor.id}" class="card-link-block">
+                            <img src="${avatarFixed}" class="card-img-top" alt="${actor.name}" data-type="avatar" onerror="this.src='${noAvatarImg}'">
+                            <div class="card-body p-2 text-center">
+                                <h5 class="card-title h6 single-line-ellipsis mb-1" title="${actor.name}">${actor.name}</h5>
+                                <span class="badge bg-light text-dark border mt-auto">${actor.videos_count} 部作品</span>
+                            </div>
+                        </a>
+                    </div>
+                `;
+                container.appendChild(col);
+            });
+        }
+
+        async function loadRecommend() {
+            const loadingEl = document.getElementById('recommend-loading');
+            const errorEl = document.getElementById('recommend-error');
+            const contentEl = document.getElementById('recommend-content');
+
+            loadingEl.classList.remove('d-none');
+            errorEl.classList.add('d-none');
+            contentEl.classList.add('d-none');
+
+            syncUrl('recommend'); // 同步地址栏
+
+            try {
+                const res = await fetch('/api/actors/recommend');
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || '加载失败');
+                const d = data.data;
+
+                renderRecommendActors(d.new_actors, 'container-new');
+                renderRecommendActors(d.monthly_actors, 'container-monthly');
+                renderRecommendActors(d.recommend_actors, 'container-recommend');
+
+                loadingEl.classList.add('d-none');
+                contentEl.classList.remove('d-none');
+            } catch (e) {
+                loadingEl.classList.add('d-none');
+                errorEl.innerHTML = `
+                    加载失败：${e.message}
+                    <div><button class="btn btn-primary mt-2" onclick="loadRecommend()">重试</button></div>
+                `;
+                errorEl.classList.remove('d-none');
+            }
+        }
+
+        // ========== 女演员模块 ==========
+        let actressPage = 1;
+
+        function bindSliderPair(minId, maxId, minValId, maxValId, fillId) {
+            const minSlider = document.getElementById(minId);
+            const maxSlider = document.getElementById(maxId);
+            const minSpan = document.getElementById(minValId);
+            const maxSpan = document.getElementById(maxValId);
+            const fill = document.getElementById(fillId);
+
+            // 获取该滑块组件的极值设定
+            const minLimit = parseInt(minSlider.min, 10);
+            const maxLimit = parseInt(maxSlider.max, 10);
+
+            // 计算并更新中间高亮填充条的位置与宽度
+            function updateFill() {
+                const valMin = parseInt(minSlider.value, 10);
+                const valMax = parseInt(maxSlider.value, 10);
+
+                const percentMin = ((valMin - minLimit) / (maxLimit - minLimit)) * 100;
+                const percentMax = ((valMax - minLimit) / (maxLimit - minLimit)) * 100;
+
+                fill.style.left = percentMin + '%';
+                fill.style.width = (percentMax - percentMin) + '%';
+            }
+
+            function updateMin() {
+                let valMin = parseInt(minSlider.value, 10);
+                let valMax = parseInt(maxSlider.value, 10);
+
+                // 【核心修改】强制最小值不能大于等于最大值
+                if (valMin >= valMax - 1) {
+                    valMin = valMax - 2;
+                    minSlider.value = valMin;
+                }
+                minSpan.textContent = valMin;
+                updateFill();
+            }
+
+            function updateMax() {
+                let valMin = parseInt(minSlider.value, 10);
+                let valMax = parseInt(maxSlider.value, 10);
+
+                // 【核心修改】强制最大值不能小于等于最小值
+                if (valMax <= valMin + 1) {
+                    valMax = valMin + 2;
+                    maxSlider.value = valMax;
+                }
+                maxSpan.textContent = valMax;
+                updateFill();
+            }
+
+            // 拖动时实时更新 UI，不触发搜索
+            minSlider.addEventListener('input', updateMin);
+            maxSlider.addEventListener('input', updateMax);
+
+            // 松手时才触发搜索接口请求 (依赖你原有的防抖函数)
+            minSlider.addEventListener('change', debouncedLoadActress);
+            maxSlider.addEventListener('change', debouncedLoadActress);
+
+            // 初始化时更新一次
+            updateMin();
+            updateMax();
+        }
+
+        function getSliderRange(minId, maxId) {
+            const min = parseInt(document.getElementById(minId).value, 10);
+            const max = parseInt(document.getElementById(maxId).value, 10);
+            return min + ',' + max;
+        }
+        function getCupRange() {
+            return document.getElementById('cupMin').value + ',' + document.getElementById('cupMax').value;
+        }
+
+        // 提取女演员筛选条件组装逻辑，以便切换选项卡时复用
+        function getActressParams(page) {
+            const params = new URLSearchParams({ page: page || 1, limit: 30 });
+            const age = getSliderRange('ageMin', 'ageMax');
+            if (age !== '19,65') params.append('age', age);
+            const height = getSliderRange('heightMin', 'heightMax');
+            if (height !== '130,185') params.append('height', height);
+            const cup = getCupRange();
+            if (cup !== 'A,P') params.append('cup', cup);
+            const bust = getSliderRange('bustMin', 'bustMax');
+            if (bust !== '70,120') params.append('bust', bust);
+            const waist = getSliderRange('waistMin', 'waistMax');
+            if (waist !== '50,90') params.append('waist', waist);
+            const hips = getSliderRange('hipsMin', 'hipsMax');
+            if (hips !== '70,120') params.append('hips', hips);
+            return params;
+        }
+
+        // 覆盖原有的 resetFilters，使其能够重绘 UI 填充条
+        function resetFilters() {
+            document.getElementById('ageMin').value = 19;
+            document.getElementById('ageMax').value = 65;
+            document.getElementById('heightMin').value = 130;
+            document.getElementById('heightMax').value = 185;
+            document.getElementById('bustMin').value = 70;
+            document.getElementById('bustMax').value = 120;
+            document.getElementById('waistMin').value = 50;
+            document.getElementById('waistMax').value = 90;
+            document.getElementById('hipsMin').value = 70;
+            document.getElementById('hipsMax').value = 120;
+
+            // 主动派发 input 事件来触发 UI 文本和填充条的重绘
+            const event = new Event('input');
+            document.querySelectorAll('.dual-range-wrapper input[type="range"]').forEach(el => {
+                el.dispatchEvent(event);
+            });
+
+            document.getElementById('cupMin').value = 'A';
+            document.getElementById('cupMax').value = 'P';
+
+            loadActress(1);
+        }
+
+        async function loadActress(page, scrollToTop = false) {
+            actressPage = page;
+            const container = document.getElementById('actressContainer');
+            const paginationEl = document.getElementById('actressPagination');
+            container.innerHTML = `<div class="col-12 text-center py-5" style="flex: 0 0 100%; max-width: 100%;"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted">加载中...</p></div>`;
+            paginationEl.classList.add('d-none');
+
+            const params = getActressParams(page);
+            syncUrl('actress', page, params.toString());
+
+            try {
+                const res = await fetch('/api/actresses?' + params.toString());
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || '加载失败');
+                const actors = data.data.actors || [];
+                renderActorCards(actors, 'actressContainer');
+                if (actors.length > 0) {
+                    renderPagination(page, actors.length, 'actressPagination', 'loadActress');
+                } else {
+                    paginationEl.classList.add('d-none');
+                }
+                if (scrollToTop) {
+                    document.getElementById('actressContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            } catch (e) {
+                container.innerHTML = `
+                    <div class="col-12 text-center text-danger py-5" style="flex: 0 0 100%; max-width: 100%;">
+                        加载失败：${e.message}
+                        <div><button class="btn btn-primary mt-2" onclick="loadActress(${page}, true)">重试</button></div>
+                    </div>
+                `;
+                paginationEl.classList.add('d-none');
+            }
+        }
+
+        const debouncedLoadActress = debounce(() => loadActress(1), 500);
+
+        // ========== 男演员模块 ==========
+        let malePage = 1;
+        async function loadMale(page, scrollToTop = false) {
+            malePage = page;
+            const container = document.getElementById('maleContainer');
+            const paginationEl = document.getElementById('malePagination');
+            container.innerHTML = `<div class="col-12 text-center py-5" style="flex: 0 0 100%; max-width: 100%;"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted">加载中...</p></div>`;
+            paginationEl.classList.add('d-none');
+
+            const params = new URLSearchParams({ page, limit: 30 });
+            syncUrl('male', page, params.toString());
+
+            try {
+                const res = await fetch('/api/actors/male?' + params.toString());
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || '加载失败');
+                const actors = data.data.actors || [];
+                renderActorCards(actors, 'maleContainer');
+                if (actors.length > 0) {
+                    renderPagination(page, actors.length, 'malePagination', 'loadMale');
+                } else {
+                    paginationEl.classList.add('d-none');
+                }
+                if (scrollToTop) {
+                    document.getElementById('maleContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            } catch (e) {
+                container.innerHTML = `
+                    <div class="col-12 text-center text-danger py-5" style="flex: 0 0 100%; max-width: 100%;">
+                        加载失败：${e.message}
+                        <div><button class="btn btn-primary mt-2" onclick="loadMale(${page}, true)">重试</button></div>
+                    </div>
+                `;
+                paginationEl.classList.add('d-none');
+            }
+        }
+
+        // ========== 无码演员模块 ==========
+        let uncensoredPage = 1;
+        async function loadUncensored(page, scrollToTop = false) {
+            uncensoredPage = page;
+            const container = document.getElementById('uncensoredContainer');
+            const paginationEl = document.getElementById('uncensoredPagination');
+            container.innerHTML = `<div class="col-12 text-center py-5" style="flex: 0 0 100%; max-width: 100%;"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted">加载中...</p></div>`;
+            paginationEl.classList.add('d-none');
+
+            const params = new URLSearchParams({ page, limit: 30 });
+            syncUrl('uncensored', page, params.toString());
+
+            try {
+                const res = await fetch('/api/actors/uncensored?' + params.toString());
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || '加载失败');
+                const actors = data.data.actors || [];
+                renderActorCards(actors, 'uncensoredContainer');
+                if (actors.length > 0) {
+                    renderPagination(page, actors.length, 'uncensoredPagination', 'loadUncensored');
+                } else {
+                    paginationEl.classList.add('d-none');
+                }
+                if (scrollToTop) {
+                    document.getElementById('uncensoredContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            } catch (e) {
+                container.innerHTML = `
+                    <div class="col-12 text-center text-danger py-5" style="flex: 0 0 100%; max-width: 100%;">
+                        加载失败：${e.message}
+                        <div><button class="btn btn-primary mt-2" onclick="loadUncensored(${page}, true)">重试</button></div>
+                    </div>
+                `;
+                paginationEl.classList.add('d-none');
+            }
+        }
+
+        // ========== 欧美女演员模块 ==========
+        let euFemalePage = 1;
+        async function loadEuFemale(page, scrollToTop = false) {
+            euFemalePage = page;
+            const container = document.getElementById('euFemaleContainer');
+            const paginationEl = document.getElementById('euFemalePagination');
+            container.innerHTML = `<div class="col-12 text-center py-5" style="flex: 0 0 100%; max-width: 100%;"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted">加载中...</p></div>`;
+            paginationEl.classList.add('d-none');
+
+            const params = new URLSearchParams({ page, limit: 30 });
+            syncUrl('eu_female', page, params.toString());
+
+            try {
+                const res = await fetch('/api/actors/eu/female?' + params.toString());
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || '加载失败');
+                const actors = data.data.actors || [];
+                renderActorCards(actors, 'euFemaleContainer');
+                if (actors.length > 0) {
+                    renderPagination(page, actors.length, 'euFemalePagination', 'loadEuFemale');
+                } else {
+                    paginationEl.classList.add('d-none');
+                }
+                if (scrollToTop) {
+                    document.getElementById('euFemaleContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            } catch (e) {
+                container.innerHTML = `
+                    <div class="col-12 text-center text-danger py-5" style="flex: 0 0 100%; max-width: 100%;">
+                        加载失败：${e.message}
+                        <div><button class="btn btn-primary mt-2" onclick="loadEuFemale(${page}, true)">重试</button></div>
+                    </div>
+                `;
+                paginationEl.classList.add('d-none');
+            }
+        }
+
+        // ========== 欧美男演员模块 ==========
+        let euMalePage = 1;
+        async function loadEuMale(page, scrollToTop = false) {
+            euMalePage = page;
+            const container = document.getElementById('euMaleContainer');
+            const paginationEl = document.getElementById('euMalePagination');
+            container.innerHTML = `<div class="col-12 text-center py-5" style="flex: 0 0 100%; max-width: 100%;"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted">加载中...</p></div>`;
+            paginationEl.classList.add('d-none');
+
+            const params = new URLSearchParams({ page, limit: 30 });
+            syncUrl('eu_male', page, params.toString());
+
+            try {
+                const res = await fetch('/api/actors/eu/male?' + params.toString());
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || '加载失败');
+                const actors = data.data.actors || [];
+                renderActorCards(actors, 'euMaleContainer');
+                if (actors.length > 0) {
+                    renderPagination(page, actors.length, 'euMalePagination', 'loadEuMale');
+                } else {
+                    paginationEl.classList.add('d-none');
+                }
+                if (scrollToTop) {
+                    document.getElementById('euMaleContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            } catch (e) {
+                container.innerHTML = `
+                    <div class="col-12 text-center text-danger py-5" style="flex: 0 0 100%; max-width: 100%;">
+                        加载失败：${e.message}
+                        <div><button class="btn btn-primary mt-2" onclick="loadEuMale(${page}, true)">重试</button></div>
+                    </div>
+                `;
+                paginationEl.classList.add('d-none');
+            }
+        }
+
+        // ========== 防抖 ==========
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+
+        // ========== 选项卡切换时加载对应数据 ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            // 1. 解析当前 URL 中的参数
+            const urlParams = new URLSearchParams(window.location.search);
+
+            // 2. 初始化范围控件的方法
+            const setRange = (param, minId, maxId) => {
+                if (urlParams.has(param)) {
+                    const [min, max] = urlParams.get(param).split(',');
+                    if (min && max) {
+                        document.getElementById(minId).value = min;
+                        document.getElementById(maxId).value = max;
+                    }
+                }
+            };
+
+            // 3. 根据 URL 恢复筛选条件
+            setRange('age', 'ageMin', 'ageMax');
+            setRange('height', 'heightMin', 'heightMax');
+            setRange('bust', 'bustMin', 'bustMax');
+            setRange('waist', 'waistMin', 'waistMax');
+            setRange('hips', 'hipsMin', 'hipsMax');
+
+            if (urlParams.has('cup')) {
+                const [min, max] = urlParams.get('cup').split(',');
+                if (min && max) {
+                    document.getElementById('cupMin').value = min;
+                    document.getElementById('cupMax').value = max;
+                }
+            }
+
+            // 绑定女演员滑块及事件
+            bindSliderPair('ageMin', 'ageMax', 'ageMinVal', 'ageMaxVal', 'ageFill');
+            bindSliderPair('heightMin', 'heightMax', 'heightMinVal', 'heightMaxVal', 'heightFill');
+            bindSliderPair('bustMin', 'bustMax', 'bustMinVal', 'bustMaxVal', 'bustFill');
+            bindSliderPair('waistMin', 'waistMax', 'waistMinVal', 'waistMaxVal', 'waistFill');
+            bindSliderPair('hipsMin', 'hipsMax', 'hipsMinVal', 'hipsMaxVal', 'hipsFill');
+            document.getElementById('cupMin').addEventListener('change', debouncedLoadActress);
+            document.getElementById('cupMax').addEventListener('change', debouncedLoadActress);
+
+            // 4. 获取 URL 携带的页码，默认为 1
+            const initPage = parseInt(urlParams.get('page')) || 1;
+
+            // 加载默认选项卡
+            const activeTab = '{{ active_tab }}';
+            if (activeTab === 'recommend') loadRecommend();
+            else if (activeTab === 'actress') loadActress(initPage);
+            else if (activeTab === 'male') loadMale(initPage);
+            else if (activeTab === 'uncensored') loadUncensored(initPage);
+            else if (activeTab === 'eu_female') loadEuFemale(initPage);
+            else if (activeTab === 'eu_male') loadEuMale(initPage);
+            else loadActress(initPage); // 默认
+
+            // 监听选项卡切换，瞬间更新地址栏并加载数据
+            const tabs = document.querySelectorAll('#actorTabs .nav-link');
+            tabs.forEach(tab => {
+                tab.addEventListener('shown.bs.tab', function(e) {
+                    const targetId = e.target.getAttribute('data-bs-target');
+                    if (targetId === '#panel-recommend') {
+                        const hasContent = ['container-new', 'container-monthly', 'container-recommend'].some(id => document.getElementById(id).children.length > 0);
+                        syncUrl('recommend'); // 推荐页不带 page 和 筛选参数
+                        if (!hasContent) loadRecommend();
+                    } else if (targetId === '#panel-actress') {
+                        if (document.getElementById('actressContainer').children.length === 0) {
+                            loadActress(actressPage);
+                        } else {
+                            // 使用提取出的 getActressParams，切回来时带上完整筛选条件
+                            syncUrl('actress', actressPage, getActressParams(actressPage).toString());
+                        }
+                    } else if (targetId === '#panel-male') {
+                        if (document.getElementById('maleContainer').children.length === 0) loadMale(malePage);
+                        else syncUrl('male', malePage);
+                    } else if (targetId === '#panel-uncensored') {
+                        if (document.getElementById('uncensoredContainer').children.length === 0) loadUncensored(uncensoredPage);
+                        else syncUrl('uncensored', uncensoredPage);
+                    } else if (targetId === '#panel-eu-female') {
+                        if (document.getElementById('euFemaleContainer').children.length === 0) loadEuFemale(euFemalePage);
+                        else syncUrl('eu_female', euFemalePage);
+                    } else if (targetId === '#panel-eu-male') {
+                        if (document.getElementById('euMaleContainer').children.length === 0) loadEuMale(euMalePage);
+                        else syncUrl('eu_male', euMalePage);
+                    }
+                });
+            });
+        });
+    </script>
+{% endblock %}

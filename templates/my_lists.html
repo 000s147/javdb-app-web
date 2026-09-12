@@ -1,0 +1,495 @@
+{% extends "base.html" %}
+
+{% block title %}我的清单 - JavDB{% endblock %}
+
+{% block styles %}
+    <style>
+        /* 页面整体背景与大容器微调 */
+        body {
+            background-color: #f4f6f9;
+        }
+
+        /* 顶部现代 Banner 横幅 */
+        .page-header {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 1.5rem 2rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        /* 现代 Dashboard 风格清单卡片 */
+        .list-card {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 14px;
+            background-color: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.06) !important;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        .list-card:hover {
+            box-shadow: 0 12px 20px rgba(13, 110, 253, 0.08) !important;
+            border-color: rgba(13, 110, 253, 0.25) !important;
+        }
+
+        /* 卡片内的主体点击跳转热区 */
+        .list-card-link {
+            display: block;
+            text-decoration: none;
+            color: inherit;
+            padding: 1.25rem;
+            flex-grow: 1;
+        }
+        .list-card-link:hover {
+            color: inherit;
+        }
+
+        /* 精致的圆形文件夹图标容器 */
+        .icon-avatar {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            font-size: 1.4rem;
+            background: #e7f1ff;
+            color: #0d6efd;
+            transition: all 0.25s ease;
+        }
+
+        /* 卡片底部工具栏（平铺按钮，取代下拉菜单） */
+        .card-action-bar {
+            background-color: #fafbfc;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+            padding: 0.5rem 1rem;
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+        }
+
+        /* 平铺按钮精致化微调 */
+        .action-btn {
+            font-size: 0.825rem;
+            padding: 0.35rem 0.65rem;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            border: 1px solid transparent !important;
+        }
+        .btn-rename-flat {
+            color: #495057 !important;
+            background-color: #fff !important;
+            border-color: #dee2e6 !important;
+        }
+        .btn-rename-flat:hover {
+            color: #0d6efd !important;
+            background-color: #f1f3f5 !important;
+            border-color: #0d6efd !important;
+        }
+        .btn-delete-flat {
+            color: #dc3545 !important;
+            background-color: #fff !important;
+            border-color: #f8d7da !important;
+        }
+        .btn-delete-flat:hover {
+            color: #dc3545 !important;
+            background-color: #f1f3f5 !important;
+            border-color: #dc3545 !important;
+        }
+
+        /* 分页器精美圆角 */
+        .pagination .page-link {
+            border-radius: 8px;
+            margin: 0 3px;
+            border: 1px solid #dee2e6;
+            color: #495057;
+        }
+        .pagination .page-item.active .page-link {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+            color: #fff;
+            box-shadow: 0 4px 10px rgba(13, 110, 253, 0.15);
+        }
+
+        /* 全局 Toast 提示样式优化 */
+        .toast-container {
+            z-index: 1090;
+        }
+        /* ========== 排序按钮组样式（与 list_home 统一） ========== */
+        .custom-radio-label {
+            border: 1px solid #dee2e6 !important;
+            background-color: #f8f9fa !important;
+            color: #212529 !important;
+            border-radius: 0.375rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+        }
+        .btn-check:not(:checked) + .custom-radio-label:hover {
+            background-color: #e9ecef !important;
+        }
+        .btn-check:checked + .custom-radio-label {
+            background-color: #0d6efd !important;
+            color: #fff !important;
+            border-color: #0d6efd !important;
+        }
+        .sort-group {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .sort-group .btn {
+            margin: 0;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <div class="page-header mb-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+        <div>
+            <h1 class="h4 mb-1 fw-bold text-dark d-flex align-items-center gap-2">
+                📂 我的清单
+            </h1>
+            <p class="text-muted small mb-0">点击卡片可快速进入清单详情页。在这里可以直接对清单进行重命名或移除。</p>
+        </div>
+
+        <div class="d-flex align-items-center gap-3">
+            <!-- 排序单选按钮组（按钮模式） -->
+            <div class="sort-group">
+                <span class="fw-bold text-muted small me-1">排序：</span>
+                <input type="radio" class="btn-check" name="sortRadio" id="sort_create" value="create" checked>
+                <label class="btn custom-radio-label btn-sm" for="sort_create">🕒 创建时间倒序</label>
+                <input type="radio" class="btn-check" name="sortRadio" id="sort_update" value="update">
+                <label class="btn custom-radio-label btn-sm" for="sort_update">🔄 更新时间倒序</label>
+            </div>
+            <button class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1" style="min-width: 70px" onclick="loadLists(1)">
+                🔄 刷新
+            </button>
+        </div>
+    </div>
+
+    <div class="row" id="listsContainer">
+        <div class="col-12 text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted small">正在加载数据，请稍候...</p>
+        </div>
+    </div>
+
+    <nav aria-label="Page navigation" class="mt-4 d-none" id="pagination">
+        <ul class="pagination justify-content-center mb-0" id="paginationList"></ul>
+    </nav>
+</div>
+
+<div class="modal fade" id="renameModal" data-bs-backdrop="static" tabindex="-1" aria-labelledby="renameModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h6 class="modal-title fw-bold text-dark" id="renameModalLabel">✏️ 重命名清单</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-3">
+                <input type="hidden" id="modalListId">
+                <div class="form-group">
+                    <label for="modalListName" class="form-label small text-muted mb-2">输入新的清单名称：</label>
+                    <input type="text" id="modalListName" class="form-control form-control-sm" autocomplete="off" placeholder="清单名称不能为空">
+                </div>
+            </div>
+            <div class="modal-footer border-top-0 pt-0">
+                <button type="button" class="btn btn-light btn-sm px-3" data-bs-dismiss="modal" id="cancelRenameBtn">取消</button>
+                <button type="button" class="btn btn-primary btn-sm px-3" id="confirmRenameBtn">保存修改</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteModal" data-bs-backdrop="static" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-body text-center pt-4 pb-3">
+                <div class="text-danger fs-1 mb-2">⚠️</div>
+                <h6 class="fw-bold text-dark mb-2">确认删除该清单吗？</h6>
+                <p class="text-muted small px-2 mb-0">删除后，清单内影片的关联将被解除。此操作无法撤销！</p>
+                <input type="hidden" id="modalDeleteListId">
+            </div>
+            <div class="modal-footer border-top-0 justify-content-center pt-0 pb-3">
+                <button type="button" class="btn btn-light btn-sm px-3" data-bs-dismiss="modal" id="cancelDeleteBtn">取消</button>
+                <button type="button" class="btn btn-danger btn-sm px-3" id="confirmDeleteBtn">确认删除</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="actionToast" class="toast align-items-center text-white bg-dark border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                操作成功
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentPage = 1;
+    const limit = 24;
+    let cachedLists = []; // 前端内存缓存，平稳渲染且防止引号逃逸报错
+
+    // 初始化 Bootstrap 模态框实例变量
+    let renameModalInstance = null;
+    let deleteModalInstance = null;
+
+    function formatDate(isoString) {
+        const d = new Date(isoString);
+        const pad = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+
+    // 轻提示方法封装
+    function showToast(message, isSuccess = true) {
+        const toastEl = document.getElementById('actionToast');
+        toastEl.className = `toast align-items-center text-white ${isSuccess ? 'bg-success' : 'bg-danger'} border-0 shadow`;
+        toastEl.querySelector('.toast-body').textContent = message;
+        const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+        toast.show();
+    }
+
+    // 分页拉取数据
+    async function loadLists(page) {
+        currentPage = page;
+        const container = document.getElementById('listsContainer');
+        const paginationEl = document.getElementById('pagination');
+        const sortRadio = document.querySelector('input[name="sortRadio"]:checked');
+        const sortBy = sortRadio ? sortRadio.value : 'create';
+
+        container.innerHTML = `
+            <div class="col-12 text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2 text-muted small">读取中...</p>
+            </div>
+        `;
+        paginationEl.classList.add('d-none');
+
+        try {
+            // 将正确的排序参数拼接到 API 请求中
+            const res = await fetch(`/api/my_lists?page=${page}&limit=${limit}&sort_by=${sortBy}`);
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message || '加载失败');
+
+            cachedLists = data.data.lists || [];
+            container.innerHTML = '';
+
+            if (cachedLists.length === 0) {
+                if (page > 1) {
+                    container.innerHTML = `
+                        <div class="col-12 text-center text-muted py-5">
+                            <p class="mb-2 small">当前页已被清空</p>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="loadLists(${page - 1})">返回上一页</button>
+                        </div>
+                    `;
+                    renderPagination(page, 0);
+                } else {
+                    container.innerHTML = `
+                        <div class="col-12 text-center text-muted py-5">
+                            <div class="fs-1 mb-2">📂</div>
+                            <h6 class="text-dark fw-bold">暂无有效清单</h6>
+                            <p class="small text-secondary mb-0">您可以在任何影片的详情页面中创建新清单并添加影片。</p>
+                        </div>
+                    `;
+                }
+                return;
+            }
+
+            cachedLists.forEach(list => {
+                const badgeHtml = list.is_default
+                    ? '<span class="badge bg-primary-subtle text-primary ms-2 px-2 py-1" style="font-size:0.7rem;">默认</span>'
+                    : '';
+
+                container.innerHTML += `
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card list-card border-0 shadow-sm">
+
+                            <a href="/list/${list.id}" class="list-card-link">
+                                <div class="d-flex align-items-center">
+                                    <div class="icon-avatar me-3 shadow-sm flex-shrink-0">📂</div>
+                                    <div class="overflow-hidden">
+                                        <h6 class="card-title mb-1 fw-bold text-dark text-truncate d-flex align-items-center" title="${list.name}">
+                                            ${list.name} ${badgeHtml}
+                                        </h6>
+                                        <div class="text-muted small text-truncate">
+                                            <span class="text-primary fw-bold">${list.movies_count}</span> 🎬 影片
+                                            <span class="mx-1 text-black-50">·</span>
+                                            <span>${list.views_count || 0}</span> 👁️ 浏览
+                                        </div>
+                                        <small class="text-muted d-block mt-1" style="font-size: 0.725rem;">🕒 ${formatDate(list.created_at)}</small>
+                                    </div>
+                                </div>
+                            </a>
+
+                            <div class="card-action-bar">
+                                <button type="button" class="action-btn btn-rename-flat" onclick="event.stopPropagation(); openRenameModal('${list.id}');">
+                                    ✏️ 重命名
+                                </button>
+                                <button type="button" class="action-btn btn-delete-flat" onclick="event.stopPropagation(); openDeleteModal('${list.id}');">
+                                    🗑️ 删除
+                                </button>
+                            </div>
+
+                        </div>
+                    </div>
+                `;
+            });
+
+            renderPagination(page, cachedLists.length);
+
+        } catch (e) {
+            container.innerHTML = `
+                <div class="col-12 text-center text-danger py-5 small">
+                    ⚠️ 数据加载发生异常：${e.message}
+                    <div><button class="btn btn-primary mt-2" onclick="loadLists(${currentPage})">重试</button></div>
+                </div>
+            `;
+        }
+    }
+
+    // ================= 触发优雅的重命名弹窗 =================
+    function openRenameModal(listId) {
+        const target = cachedLists.find(l => l.id === listId);
+        if (!target) return;
+
+        document.getElementById('modalListId').value = listId;
+        document.getElementById('modalListName').value = target.name;
+
+        if (!renameModalInstance) {
+            renameModalInstance = new bootstrap.Modal(document.getElementById('renameModal'));
+        }
+        renameModalInstance.show();
+    }
+
+    // 绑定模态框中的“保存修改”动作 (附带防重复点击及加载反馈状态)
+    document.getElementById('confirmRenameBtn').addEventListener('click', async function() {
+        const listId = document.getElementById('modalListId').value;
+        const newName = document.getElementById('modalListName').value.trim();
+
+        if (!newName) {
+            showToast('清单名称不能为空！', false);
+            return;
+        }
+
+        const submitBtn = this;
+        const cancelBtn = document.getElementById('cancelRenameBtn');
+
+        // 进入加载提交状态
+        submitBtn.disabled = true;
+        cancelBtn.disabled = true;
+        submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> 正在提交...`;
+
+        try {
+            const res = await fetch(`/api/lists/${listId}?name=${encodeURIComponent(newName)}`, {
+                method: 'PATCH'
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message || '重命名失败');
+
+            renameModalInstance.hide();
+            showToast('清单重命名成功');
+            loadLists(currentPage);
+        } catch (e) {
+            showToast(e.message, false);
+        } finally {
+            // 恢复初始按钮状态
+            submitBtn.disabled = false;
+            cancelBtn.disabled = false;
+            submitBtn.innerHTML = '保存修改';
+        }
+    });
+
+    // ================= 触发优雅的删除确认弹窗 =================
+    function openDeleteModal(listId) {
+        document.getElementById('modalDeleteListId').value = listId;
+        if (!deleteModalInstance) {
+            deleteModalInstance = new bootstrap.Modal(document.getElementById('deleteModal'));
+        }
+        deleteModalInstance.show();
+    }
+
+    // 绑定模态框中的“确认删除”动作 (附带防重复点击及加载反馈状态)
+    document.getElementById('confirmDeleteBtn').addEventListener('click', async function() {
+        const listId = document.getElementById('modalDeleteListId').value;
+        const submitBtn = this;
+        const cancelBtn = document.getElementById('cancelDeleteBtn');
+
+        // 进入加载删除状态
+        submitBtn.disabled = true;
+        cancelBtn.disabled = true;
+        submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> 正在处理...`;
+
+        try {
+            const res = await fetch(`/api/lists/${listId}`, {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message || '删除失败');
+
+            deleteModalInstance.hide();
+            showToast('该清单已被彻底删除');
+            loadLists(currentPage);
+        } catch (e) {
+            showToast(e.message, false);
+        } finally {
+            // 恢复初始按钮状态
+            submitBtn.disabled = false;
+            cancelBtn.disabled = false;
+            submitBtn.innerHTML = '确认删除';
+        }
+    });
+
+    // 分页组件逻辑渲染
+    function renderPagination(page, loadedCount) {
+        const paginationUl = document.getElementById('paginationList');
+        paginationUl.innerHTML = '';
+
+        if (loadedCount === 0 && page === 1) {
+            document.getElementById('pagination').classList.add('d-none');
+            return;
+        }
+
+        const isLastPage = loadedCount < limit;
+        const prevDisabled = page <= 1 ? 'disabled' : '';
+
+        paginationUl.innerHTML += `
+            <li class="page-item ${prevDisabled}">
+                <a class="page-link" href="javascript:void(0)" onclick="if(${page} > 1) loadLists(${page - 1})">上一页</a>
+            </li>
+            <li class="page-item active"><span class="page-link">${page}</span></li>
+            <li class="page-item ${isLastPage ? 'disabled' : ''}">
+                <a class="page-link" href="javascript:void(0)" onclick="if(!${isLastPage}) loadLists(${page + 1})">下一页</a>
+            </li>
+        `;
+        document.getElementById('pagination').classList.remove('d-none');
+    }
+
+    // 初始化运行
+    document.addEventListener('DOMContentLoaded', () => {
+        // 给所有排序 radio 绑定 change 事件，切换时刷新到第一页
+        document.querySelectorAll('input[name="sortRadio"]').forEach(el => {
+            el.addEventListener('change', function() {
+                if (this.checked) {
+                    loadLists(1);
+                }
+            });
+        });
+        // 初始加载
+        loadLists(1);
+    });
+</script>
+{% endblock %}

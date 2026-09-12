@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block title %}AV资讯 - JavDB{% endblock %}
+
+{% block styles %}
+    <style>
+        .article-card { transition: transform 0.2s; border: 1px solid #e9ecef; }
+        .article-card:hover { transform: scale(1.02); }
+        .article-card img { width: 100%; height: 180px; object-fit: cover; }
+        .filter-section {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
+        }
+        .article-meta { font-size: 0.85rem; color: #6c757d; }
+        .article-title { font-size: 1.1rem; font-weight: 600; }
+        .filter-display { font-weight: 500; color: #0d6efd; }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4 text-center">📰 AV资讯</h1>
+
+    <!-- 筛选栏 -->
+    <div class="filter-section border">
+        <div class="row align-items-center">
+            <div class="col-md-8 d-flex align-items-center flex-wrap gap-2">
+                <span class="fw-bold text-muted small">筛选：</span>
+                <span id="filterDisplay" class="text-muted">全部资讯</span>
+            </div>
+            <div class="col-md-4 text-end">
+                <button class="btn btn-outline-secondary btn-sm me-1" id="clearFilterBtn" onclick="clearFilters()" style="display:none;">清除筛选</button>
+                <button class="btn btn-primary btn-sm" onclick="loadArticles(1)">刷新</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 文章列表 -->
+    <div class="row" id="articlesContainer"></div>
+
+    <!-- 分页 -->
+    <nav aria-label="Page navigation" class="mt-4 d-none" id="pagination">
+        <ul class="pagination justify-content-center mb-0" id="paginationList"></ul>
+    </nav>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentPage = 1;
+    const limit = 12;
+
+    // 从 URL 获取筛选参数
+    const urlParams = new URLSearchParams(window.location.search);
+    let currentAuthorId = urlParams.get('author_id') || '';
+    let currentAuthorName = urlParams.get('author_name') || '';
+    let currentCategoryId = urlParams.get('category_id') || '';
+    let currentCategoryName = urlParams.get('category_name') || '';
+
+    // 更新筛选显示
+    function updateFilterDisplay() {
+        const display = document.getElementById('filterDisplay');
+        const clearBtn = document.getElementById('clearFilterBtn');
+        if (currentAuthorId) {
+            display.innerHTML = `作者：<span class="filter-display">${currentAuthorName}</span>`;
+            clearBtn.style.display = 'inline-block';
+        } else if (currentCategoryId) {
+            display.innerHTML = `类别：<span class="filter-display">${currentCategoryName}</span>`;
+            clearBtn.style.display = 'inline-block';
+        } else {
+            display.textContent = '全部资讯';
+            clearBtn.style.display = 'none';
+        }
+    }
+
+    // 清除筛选
+    function clearFilters() {
+        window.location.href = '/articles';
+    }
+
+    // ========== 防抖 ==========
+    function debounce(func, wait) {
+        let timeout;
+        return function(...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+        };
+    }
+
+    // ========== 加载文章列表 ==========
+    async function loadArticles(page, scrollToTop = false) {
+        currentPage = page;
+        const container = document.getElementById('articlesContainer');
+        const paginationEl = document.getElementById('pagination');
+
+        container.innerHTML = `
+            <div class="col-12 text-center py-5">
+                <div class="spinner-border text-primary"></div>
+                <p class="mt-2 text-muted">加载中...</p>
+            </div>
+        `;
+        paginationEl.classList.add('d-none');
+
+        // 构建请求参数
+        let params = new URLSearchParams({ page, limit });
+        if (currentAuthorId) params.append('author_id', currentAuthorId);
+        if (currentCategoryId) params.append('category_id', currentCategoryId);
+
+        try {
+            const res = await fetch(`/api/articles?${params.toString()}`);
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message || '加载失败');
+
+            const articles = data.data.articles || [];
+            renderArticles(articles);
+            if (articles.length > 0) {
+                renderPagination(page, articles.length);
+                paginationEl.classList.remove('d-none');
+            } else {
+                container.innerHTML = '<div class="col-12 text-center text-muted py-5">暂无资讯</div>';
+            }
+
+            // 更新筛选显示（显示作者或类别名字）
+            if (currentAuthorId && articles.length > 0) {
+                // 取第一篇文章的作者名字
+                const authorName = articles[0].author ? articles[0].author.name : currentAuthorId;
+                document.getElementById('filterDisplay').innerHTML = `作者：<span class="filter-display">${authorName}</span>`;
+            } else if (currentCategoryId && articles.length > 0) {
+                const categoryName = articles[0].category ? articles[0].category.name : currentCategoryId;
+                document.getElementById('filterDisplay').innerHTML = `类别：<span class="filter-display">${categoryName}</span>`;
+            }
+
+            if (scrollToTop) {
+                document.getElementById('articlesContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        } catch (e) {
+            container.innerHTML = `
+                <div class="col-12 text-center text-danger py-5">
+                    加载失败：${e.message}
+                    <div><button class="btn btn-primary mt-2" onclick="loadArticles(${currentPage}, true)">重试</button></div>
+                </div>
+            `;
+        }
+    }
+
+    // ========== 渲染文章卡片 ==========
+    function renderArticles(articles) {
+        const container = document.getElementById('articlesContainer');
+        container.innerHTML = '';
+
+        articles.forEach(article => {
+            const coverFixed = `/api/image_proxy?url=${encodeURIComponent(article.cover_url)}`;
+            const detailUrl = `/article/${article.id}`;
+            const d = new Date(article.released_at);
+            const released = d.toLocaleString('sv-SE', {
+              timeZone: 'Asia/Shanghai',
+            }).slice(0, 16).replace('T', ' ');
+
+            // 构建作者链接和类别链接
+            let authorLink = article.author ? `<a href="/articles?author_id=${article.author.id}" class="text-decoration-none text-dark">${article.author.name}</a>` : '未知作者';
+            let categoryLink = article.category ? `<a href="/articles?category_id=${article.category.id}" class="text-decoration-none" style="color: #bb2d3b">${article.category.name}</a>` : '未分类';
+
+            container.innerHTML += `
+                <div class="col-md-4 mb-4">
+                    <div class="card article-card h-100 shadow-sm border-0">
+                        <a href="${detailUrl}" class="card-link-block">
+                            <img src="${coverFixed}" class="card-img-top" alt="${article.title}" onerror="this.src='{{ url_for('static', filename='images/noimage.jpg') }}'">
+                            <div class="card-body">
+                                <h5 class="article-title text-truncate" title="${article.title}">${article.title}</h5>
+                                <div class="article-meta mb-2">
+                                    <span class="badge bg-secondary">${categoryLink}</span>
+                                    <span class="ms-2">${authorLink}</span>
+                                    <span class="ms-2">${released}</span>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    // ========== 分页 ==========
+    function renderPagination(currentPage, loadedCount) {
+        const paginationUl = document.getElementById('paginationList');
+        paginationUl.innerHTML = '';
+
+        const isLastPage = loadedCount < limit;
+        const prevDisabled = currentPage <= 1 ? 'disabled' : '';
+
+        paginationUl.innerHTML += `
+            <li class="page-item ${prevDisabled}">
+                <a class="page-link" href="javascript:void(0)" onclick="if(${currentPage} > 1) loadArticles(${currentPage - 1}, true)">上一页</a>
+            </li>
+        `;
+
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = isLastPage ? currentPage : currentPage + 2;
+
+        for (let i = startPage; i <= endPage; i++) {
+            if (i === currentPage) {
+                paginationUl.innerHTML += `<li class="page-item active"><span class="page-link">${i}</span></li>`;
+            } else {
+                paginationUl.innerHTML += `<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="loadArticles(${i}, true)">${i}</a></li>`;
+            }
+        }
+
+        const nextDisabled = isLastPage ? 'disabled' : '';
+        paginationUl.innerHTML += `
+            <li class="page-item ${nextDisabled}">
+                <a class="page-link" href="javascript:void(0)" onclick="if(!${isLastPage}) loadArticles(${currentPage + 1}, true)">下一页</a>
+            </li>
+        `;
+
+        paginationUl.innerHTML += `
+            <li class="page-item ms-3 d-flex align-items-center">
+                <input type="number" id="jumpPageInput" class="form-control text-center px-1" style="width: 60px; height: 38px;" value="${currentPage + 1}" min="1">
+                <button class="btn btn-outline-primary ms-1" style="height: 38px;" onclick="jumpToPage()">跳转</button>
+            </li>
+        `;
+    }
+
+    function jumpToPage() {
+        const val = document.getElementById('jumpPageInput').value;
+        const p = parseInt(val, 10);
+        if (p && p > 0) loadArticles(p, true);
+    }
+
+    // ========== 初始化 ==========
+    document.addEventListener('DOMContentLoaded', function() {
+        updateFilterDisplay();
+        loadArticles(1);
+    });
+</script>
+{% endblock %}

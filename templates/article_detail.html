@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}加载中...{% endblock %}
+
+{% block styles %}
+    <style>
+        .article-detail img { max-width: 100%; height: auto; }
+        .article-content { font-size: 1.05rem; line-height: 1.8; }
+        .article-content p { margin-bottom: 1rem; }
+        .article-content .quote { background: #f8f9fa; border-left: 4px solid #0d6efd; padding: 1rem; margin: 1rem 0; }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div id="loading" class="text-center py-5">
+        <div class="spinner-border text-primary"></div>
+        <p class="mt-2 text-muted">加载中...</p>
+    </div>
+
+    <div id="error" class="alert alert-danger d-none" role="alert"></div>
+
+    <div id="detailContainer" class="d-none">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h1 id="articleTitle" class="fw-bold mb-3"></h1>
+                <div class="d-flex flex-wrap gap-3 text-muted mb-4">
+                    <span id="articleAuthor" class="badge bg-secondary"></span>
+                    <span id="articleCategory" class="badge bg-info"></span>
+                    <span id="articleDate" class="small"></span>
+                </div>
+                <!-- 转载信息 -->
+                <div id="originInfo" class="mb-3 small text-muted"></div>
+                <div id="articleContent" class="article-content"></div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const articleId = '{{ article_id }}';
+
+    async function loadArticleDetail() {
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const container = document.getElementById('detailContainer');
+
+        try {
+            const res = await fetch(`/api/article/${articleId}`);
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message || '获取详情失败');
+
+            const article = data.data;
+            document.title = article.title + ' - JavDB';
+
+            document.getElementById('articleTitle').textContent = article.title;
+
+            // ----- 转载信息 -----
+            const originDiv = document.getElementById('originInfo');
+            if (article.origin_name && article.origin_url) {
+                originDiv.innerHTML = `转载自：<a href="${article.origin_url}" target="_blank" rel="nofollow">${article.origin_name}</a>`;
+            } else {
+                originDiv.innerHTML = '';
+            }
+
+            // 作者和类别设置为链接
+            const authorHtml = article.author ? `<a href="/articles?author_id=${article.author.id}&author_name=${article.author.name}" class="text-white text-decoration-none">${article.author.name}</a>` : '未知作者';
+            const categoryHtml = article.category ? `<a href="/articles?category_id=${article.category.id}&category_name=${article.category.name}" class="text-white text-decoration-none">${article.category.name}</a>` : '未分类';
+            document.getElementById('articleAuthor').innerHTML = authorHtml;
+            document.getElementById('articleCategory').innerHTML = categoryHtml;
+
+            const d = new Date(article.released_at);
+            const released = d.toLocaleString('sv-SE', {
+              timeZone: 'Asia/Shanghai',
+            }).slice(0, 16).replace('T', ' ');
+            document.getElementById('articleDate').textContent = '发布于 ' + released;
+
+            // 渲染内容
+            const contentDiv = document.getElementById('articleContent');
+            contentDiv.innerHTML = article.content || '暂无内容';
+
+            // 处理图片
+            const images = contentDiv.querySelectorAll('img');
+            images.forEach(img => {
+                const src = img.getAttribute('src');
+                if (src) {
+                    img.src = `/api/image_proxy?url=${encodeURIComponent(src)}`;
+                }
+            });
+
+            loading.classList.add('d-none');
+            container.classList.remove('d-none');
+
+        } catch (e) {
+            loading.classList.add('d-none');
+            error.classList.remove('d-none');
+            error.textContent = '加载失败：' + e.message;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadArticleDetail);
+</script>
+{% endblock %}

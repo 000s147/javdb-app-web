@@ -1,0 +1,349 @@
+{% extends "base.html" %}
+
+{% block title %}看短评 - JavDB{% endblock %}
+
+{% block styles %}
+<style>
+    /* 容器背景微调 */
+    body { background-color: #f4f6f9; }
+
+    /* ===== 横向滚动胶囊选项卡 ===== */
+    .tabs-scroll-container {
+        width: 100%;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 5px;
+    }
+    .tabs-scroll-container::-webkit-scrollbar { display: none; } /* 隐藏滚动条 */
+
+    .review-tab-btn {
+        display: inline-block;
+        padding: 6px 20px;
+        margin: 0 4px;
+        border-radius: 50px !important;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: #495057 !important;
+        background: #fff !important;
+        border: 1px solid #dee2e6 !important;
+        transition: all 0.25s ease;
+        text-decoration: none;
+        cursor: pointer;
+        user-select: none;
+    }
+    .review-tab-btn:hover {
+        background: #f1f3f5 !important;
+        color: #0d6efd !important;
+        border-color: #c5d7f2 !important;
+    }
+    .review-tab-btn.active {
+        background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%) !important;
+        color: #fff !important;
+        border-color: transparent !important;
+        box-shadow: 0 4px 12px rgba(13, 110, 253, 0.25) !important;
+    }
+
+    /* ===== 短评卡片信息流样式 ===== */
+    .review-feed-card {
+		background: #ffffff;
+		border-radius: 14px;
+		border: 1px solid rgba(0, 0, 0, 0.06);
+		
+		/* 🔥 核心动画属性：位移 + 阴影 */
+		transition: transform 0.35s cubic-bezier(0.15, 0.75, 0.35, 1), 
+					box-shadow 0.4s ease,
+					border-color 0.3s ease;
+		
+		overflow: hidden;
+		will-change: transform; /* 开启硬件加速，使动画更丝滑 */
+	}
+    .review-feed-card:hover {
+		transform: translateY(-1px) scale(1.0); /* 轻微上浮并略微放大 */
+		box-shadow: 0 16px 40px rgba(0, 0, 0, 0.08) !important; /* 阴影变深变大 */
+		border-color: rgba(13, 110, 253, 0.25);
+	}
+
+    /* 核心解法：宽幅小封面的等比容器 */
+    .thumb-ratio-box {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 16 / 10; /* 强制锁定宽矩形 */
+        border-radius: 8px;
+        overflow: hidden;
+        background-color: #eaeeef;
+    }
+    .thumb-ratio-box img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover; /* 居中等比裁切填满 */
+        transition: transform 0.3s ease;
+    }
+
+    /* 左下角番号悬浮贴纸 */
+    .code-sticker {
+        position: absolute;
+        bottom: 4px;
+        left: 4px;
+        background: rgba(16, 16, 16, 0.82);
+        color: #fff;
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 1px 6px;
+        border-radius: 4px;
+        backdrop-filter: blur(4px);
+    }
+
+    .review-content {
+        font-size: 0.98rem;
+        line-height: 26px;
+        word-break: break-word;
+    }
+
+    .movie-sub-link {
+        color: #6c757d;
+        text-decoration: none;
+        font-size: 0.82rem;
+        transition: color 0.2s;
+        display: block;
+    }
+    .movie-sub-link:hover { color: #0d6efd; }
+	
+	/* 卡片悬浮时，内部封面图片放大 */
+	.review-feed-card:hover .thumb-ratio-box img {
+		transform: scale(1.03); /* 稍微调大一点配合卡片悬浮 */
+	}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="text-center mb-4">
+    <h4 class="fw-bold text-dark mb-1">💬 社区短评</h4>
+    <p class="text-muted small">看看老哥们都在冲哪些片、避哪些坑</p>
+</div>
+
+<div class="tabs-scroll-container text-center mb-4" id="tabGroup">
+    <span class="review-tab-btn active" data-period="latest">🆕 最新</span>
+    <span class="review-tab-btn" data-period="weekly">📅 上周热评</span>
+    <span class="review-tab-btn" data-period="monthly">🌙 月度热评</span>
+    <span class="review-tab-btn" data-period="quarterly">🍂 季度热评</span>
+    <span class="review-tab-btn" data-period="yearly">👑 年度热评</span>
+    <span class="review-tab-btn" data-period="all">🔥 全部热评</span>
+</div>
+
+<div id="reviewsContainer" class="row g-3"></div>
+
+<div id="feedLoading" class="text-center py-5 d-none">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="mt-2 text-muted small">加载中...</p>
+</div>
+
+<nav aria-label="Page navigation" class="mt-4 d-none" id="paginationWrap">
+    <ul class="pagination justify-content-center mb-0" id="paginationList"></ul>
+</nav>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentPeriod = 'latest';
+    let currentPage = 1;
+    const limit = 24;
+
+    // 复用项目原有的用户等级观影颜色逻辑
+    function getUserColor(watchedCount) {
+        if (watchedCount < 50) return "#4a4a4a";
+        if (watchedCount < 200) return "#22c55e";
+        if (watchedCount < 500) return "#3b82f6";
+        if (watchedCount < 1000) return "#a855f7";
+        if (watchedCount < 2000) return "#f97316";
+        if (watchedCount < 3000) return "#eab308";
+        if (watchedCount < 4000) return "#ef4444";
+        return "#ec4899";
+    }
+
+    function formatTimeFriendly(isoString) {
+        const d = new Date(isoString);
+        const pad = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+
+    async function loadReviewsData(page) {
+        currentPage = page;
+        const container = document.getElementById('reviewsContainer');
+        const loading = document.getElementById('feedLoading');
+        const pageWrap = document.getElementById('paginationWrap');
+
+        container.innerHTML = '';
+        loading.classList.remove('d-none');
+        pageWrap.classList.add('d-none');
+
+        try {
+            const res = await fetch(`/api/reviews?period=${currentPeriod}&page=${page}&limit=${limit}`);
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message || '数据接口返回失败');
+
+            const list = (data.data && data.data.reviews) || [];
+            loading.classList.add('d-none');
+
+            if (list.length === 0) {
+                container.innerHTML = `<div class="col-12 text-center text-muted py-5">暂无短评数据</div>`;
+                return;
+            }
+
+            list.forEach(item => {
+                const m = item.movie || {};
+                const uColor = getUserColor(item.watched_count || 0);
+                const scoreRound = Math.round(item.score || 0);
+                const stars = scoreRound > 0 ? ('★'.repeat(scoreRound) + '☆'.repeat(5 - scoreRound)) : '';
+                const titleText = m.title || m.origin_title || '未知影片';
+                let titleNumberText = m.number ? `${m.number} ` : '';
+
+                const thumb = `/api/image_proxy?url=${encodeURIComponent(m.thumb_url)}`;
+
+                const cardHtml = `
+                    <div class="col-12">
+                        <div class="review-feed-card p-3 shadow-sm">
+                            <div class="row g-3 align-items-stretch">
+                                <div class="col-md-2 col-4 mt-4">
+                                    <a href="/movie/${m.id}" target="_blank">
+                                        <div class="thumb-ratio-box">
+                                            <img src="${thumb}" onerror="this.src='{{ url_for('static', filename='images/noimage.jpg') }}'" alt="${m.number}" title="${titleNumberText}${titleText}">
+                                            <span class="code-sticker">${m.number || 'JAV'}</span>
+                                        </div>
+                                    </a>
+                                </div>
+
+                                <div class="col-md-10 col-8 d-flex flex-column py-1">
+
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between align-items-center mb-1 flex-wrap">
+                                            <div class="d-flex align-items-center">
+                                                <span style="color:${uColor}; font-size:16px; cursor: default;" title="看过${item.watched_count}部影片">${item.username}</span>
+                                                <span class="text-warning ms-2" style="font-size:20px; letter-spacing:1px;">${stars}</span>
+                                            </div>
+                                            <small class="text-muted" style="font-size: 0.82rem;">${formatTimeFriendly(item.created_at)}</small>
+                                        </div>
+                                        <div class="review-content my-1" style="white-space: pre-wrap;">${item.content || '（用户未填写文字）'}</div>
+                                    </div>
+
+                                    <div class="d-flex justify-content-between align-items-center pt-2 mt-2 border-top" style="border: none!important;">
+                                        <a href="/movie/${m.id}" target="_blank" class="movie-sub-link text-truncate pe-2" style="max-width: 85%;">
+                                            🎬 <span title="${titleNumberText}${titleText}">${titleNumberText}${titleText}</span>
+                                        </a>
+                                        <span class="badge text-muted small fw-normal" title="点赞" data-review-id="${item.id}" data-liked="${item.liked}" onclick="toggleLike(this)" style="font-size: 0.82rem;cursor: pointer;"><span style="font-size: 1.15rem;">👍</span> <span class="like-count" style="margin-left: -5px;font-size: 0.9rem;">${item.likes_count || 0}</span></span>
+
+
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', cardHtml);
+            });
+
+            renderPagination(page, list.length);
+
+        } catch (e) {
+            loading.classList.add('d-none');
+            container.innerHTML = `
+                <div class="col-12 text-center text-danger py-5">
+                    ⚠️ 加载发生错误：${e.message}
+                    <div><button class="btn btn-primary mt-2" onclick="loadReviewsData(${currentPage})">重试</button></div>
+                </div>
+            `;
+        }
+    }
+
+    // 分页渲染逻辑
+    function renderPagination(page, loadedCount) {
+        const ul = document.getElementById('paginationList');
+        ul.innerHTML = '';
+        const isLastPage = loadedCount < limit;
+
+        ul.innerHTML += `
+            <li class="page-item ${page <= 1 ? 'disabled' : ''}">
+                <a class="page-link" href="javascript:void(0)" onclick="if(${page}>1) loadReviewsData(${page - 1})">上一页</a>
+            </li>
+        `;
+
+        let start = Math.max(1, page - 2);
+        let end = isLastPage ? page : page + 2;
+
+        for (let i = start; i <= end; i++) {
+            ul.innerHTML += `
+                <li class="page-item ${i === page ? 'active' : ''}">
+                    <a class="page-link" href="javascript:void(0)" onclick="loadReviewsData(${i})">${i}</a>
+                </li>
+            `;
+        }
+
+        ul.innerHTML += `
+            <li class="page-item ${isLastPage ? 'disabled' : ''}">
+                <a class="page-link" href="javascript:void(0)" onclick="if(!${isLastPage}) loadReviewsData(${page + 1})">下一页</a>
+            </li>
+            <li class="page-item ms-2 d-flex align-items-center">
+                <input type="number" id="jumpNum" class="form-control form-control-sm text-center px-1" style="width: 55px; height: 38px;" value="${page + 1}" min="1">
+                <button class="btn btn-outline-primary ms-1" style="height: 38px;" onclick="jumpPageAction()">跳转</button>
+            </li>
+        `;
+        document.getElementById('paginationWrap').classList.remove('d-none');
+    }
+
+    function jumpPageAction() {
+        const val = parseInt(document.getElementById('jumpNum').value, 10);
+        if (val && val > 0) loadReviewsData(val);
+    }
+
+    async function toggleLike(btn) {
+        const reviewId = btn.dataset.reviewId;
+        const movieId = window.location.pathname.split('/').pop();
+        const isLiked = btn.dataset.liked === 'true';
+        const countSpan = btn.querySelector('.like-count');
+        let currentCount = parseInt(countSpan.innerText, 10) || 0;
+
+        // 防止重复点击
+        if (btn.disabled) return;
+        btn.disabled = true;
+
+        try {
+            const res = await fetch(`/api/movie/${movieId}/reviews/${reviewId}/like`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message || '操作失败');
+
+            // 切换状态
+            const newLiked = !isLiked;
+            btn.dataset.liked = newLiked ? 'true' : 'false';
+            countSpan.innerText = newLiked ? currentCount + 1 : Math.max(currentCount - 1, 0);
+            btn.title = '已点赞';
+        } catch (e) {
+            alert('点赞失败：' + e.message);
+            if (!e.success && e.message.includes('你已經點過贊了')) {
+                btn.title = '已点赞';
+            } else {
+                btn.disabled = false;
+            }
+        }
+    }
+
+    // 初始化事件绑定
+    document.addEventListener('DOMContentLoaded', () => {
+        const tabBtns = document.querySelectorAll('.review-tab-btn');
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                tabBtns.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentPeriod = this.dataset.period;
+                loadReviewsData(1); // 切换周期重置为第一页
+            });
+        });
+
+        loadReviewsData(1);
+    });
+</script>
+{% endblock %}

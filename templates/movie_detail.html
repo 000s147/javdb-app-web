@@ -1,0 +1,1994 @@
+{% extends "base.html" %}
+
+{% block title %}加载中...{% endblock %}
+
+{% block styles %}
+    <style>
+        .detail-cover {
+            max-width: 100%;              /* 优化点1：替代 width: 100% */
+            height: auto;                 /* 配合 max-width 保持原始宽高比 */
+            max-height: 538px;            /* 固定最大高度，防止竖屏图过长占据全屏 */
+            object-fit: scale-down;       /* 保持原始比例：大图缩小，小图不放大 */
+            background-color: #f8f9fa;    /* 优化点2：替换为你 body 使用的底色，或改回你需要的深色 */
+            border-radius: 5px;
+            display: block;               /* 优化点3：消除 img 标签底部的默认幽灵空白间隙 */
+            margin: 0 auto;               /* 优化点4：当图片小于父容器宽度时，保证水平居中 */
+        }
+        .preview-img {
+            width: 100%;
+            aspect-ratio: 16 / 10;
+            object-fit: contain;
+            background-color: #fff;
+            cursor: pointer;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .preview-img:hover {
+            transform: scale(1.03);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+        .info-list .list-group-item { background: transparent; }
+        .list-group-item {
+            border-bottom: 1px solid rgb(237, 237, 237)!important;
+        }
+        .actor-link { text-decoration: none; }
+        .actor-link:hover { text-decoration: underline; }
+
+        .lightbox-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            z-index: 2147483647;
+            /* 新增：背景颜色的渐变过渡 */
+            transition: background-color 0.3s ease;
+        }
+        .lightbox-wrapper {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: zoom-out;
+        }
+        .lightbox-img {
+            max-width: 92%;
+            max-height: 92%;
+            object-fit: contain;
+            border-radius: 4px;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.5);
+            cursor: default;
+            user-select: none;
+            /* 修改：增加 transform 和 opacity 的过渡效果 */
+            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.3s ease;
+            transform-origin: center center;
+            will-change: transform, opacity;
+        }
+        video.lightbox-img {
+            width: 80%;
+            background-color: #000;
+            outline: none;
+        }
+        .lightbox-close {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 2001;
+            transition: color 0.2s;
+            text-decoration: none;
+        }
+        .lightbox-close:hover {
+            color: #fff;
+        }
+        .play-btn-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            filter: drop-shadow(0 2px 5px rgba(0,0,0,0.5));
+        }
+        /* 自定义排名样式 */
+        .rank-no {
+            display: inline-block;
+            background-color: #101010;      /* 黑底 */
+            color: #ffffff;                 /* 白字 */
+            padding-top: 3px;
+            padding-bottom: 2px;
+            padding-left: 10px;
+            padding-right: 10px;
+            border-radius: 0px;            /* 圆角胶囊 */
+            font-weight: 700;
+            font-size: 0.75rem;
+            margin-right: -5px;
+            letter-spacing: 0.5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .rank-title {
+            display: inline-block;
+            background-color: #ffdc74;      /* 黄底 */
+            color: #1a1a1a;                 /* 黑字 */
+            padding-top: 3px;
+            padding-bottom: 2px;
+            padding-left: 12px;
+            padding-right: 12px;
+            border-radius: 0;
+            font-weight: 600;
+            font-size: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        /* ===== 演员样式（自定义） ===== */
+        .actor-item {
+            display: inline-flex;
+            align-items: center;
+            background: #f0f0f0;        /* 浅灰背景，更柔和 */
+            color: #333;
+            padding: 2px 8px 2px 4px;
+            border-radius: 20px;         /* 大圆角胶囊 */
+            margin-right: 6px;
+            margin-bottom: 6px;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            border: 1px solid #e9ecef;
+        }
+        .actor-item:hover {
+            background: #e2e6ea;         /* 悬停加深 */
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-decoration: none;
+        }
+        .actor-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 6px;
+            border: 1px solid #fff;      /* 白色边框突出头像 */
+        }
+        .actor-name {
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .actor-gender-f {
+            /* 女性可加额外标识，但我们用背景色区分 */
+        }
+        .actor-gender-m {
+            /* 男性 */
+        }
+        /* 根据性别区分背景色（可选） */
+        .actor-item.female {
+            background: #fce4ec;   /* 浅粉 */
+        }
+        .actor-item.male {
+            background: #e3f2fd;   /* 浅蓝 */
+        }
+        /* ===== 自定义标签样式 ===== */
+        .tag-item {
+            display: inline-block;
+            background: #e9ecef !important;           /* 浅灰底，柔和 */
+            color: #333 !important;
+            padding: 2px 12px;
+            border-radius: 20px;           /* 大圆角胶囊 */
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-right: 6px;
+            margin-bottom: 4px;
+            transition: all 0.2s ease;
+            border: 1px solid transparent !important;
+            text-decoration: none;
+        }
+        .tag-item:hover {
+            background: #dee2e6 !important;           /* 悬停加深 */
+            border-color: #adb5bd !important;
+            transform: translateY(-1px);
+            text-decoration: none;
+            color: #000 !important;
+        }
+        /* 在 movie_detail.html 的 <style> 块中添加 */
+        .custom-review-tabs .btn {
+            border: none;
+            background: rgba(13, 110, 253, 0.06);
+            color: #6c757d;
+            font-weight: 500;
+            padding: 6px 18px;
+            border-radius: 30px;        /* 大圆角胶囊 */
+            transition: all 0.25s ease;
+            position: relative;
+        }
+
+        .custom-review-tabs .btn:hover {
+            color: #495057;
+            background: rgb(13 110 253 / 0.10);
+        }
+
+        .custom-review-tabs .btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+        }
+
+        .custom-review-tabs .btn.active:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.45);
+        }
+
+        /* 图标与文字间距 */
+        .custom-review-tabs .btn i {
+            margin-right: 5px;
+        }
+        /* ===== 快速导航悬浮菜单 ===== */
+        .quick-nav-menu {
+            position: fixed;
+            bottom: 100px; /* 避开 bottom: 30px 的回到顶部按钮 */
+            right: 30px;   /* 与 52px 的回到顶部按钮居中对齐 */
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(20px);
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .quick-nav-menu.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .quick-nav-menu .nav-btn {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            border: none !important;
+            background: #fff !important;
+            color: #495057 !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12) !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            text-decoration: none;
+        }
+
+        .quick-nav-menu .nav-btn:hover {
+            background: #f8f9fa !important;
+            color: #0d6efd !important;
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(13, 110, 253, 0.2) !important;
+        }
+
+        /* 鼠标悬停显示文字提示 (Tooltip) */
+        .quick-nav-menu .nav-btn::after {
+            content: attr(data-title);
+            position: absolute;
+            right: 52px;
+            background: rgba(33, 37, 41, 0.85);
+            color: #fff;
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateX(10px);
+            transition: all 0.2s ease;
+            pointer-events: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .quick-nav-menu .nav-btn:hover::after {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(0);
+        }
+        .list-hover {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .list-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 20px rgba(13, 110, 253, 0.08) !important;
+            border-color: rgba(13, 110, 253, 0.25) !important;
+        }
+        .comment-hover:hover {
+            background-color: #f5f5f5;
+        }
+        /* 灯箱视频专属样式：保证加载前就有合理尺寸 */
+        #lightboxVideo {
+            width: 90%;
+            max-width: 90%;
+            height: 90vh;
+            max-height: 90vh;
+            min-height: 60vh;
+            object-fit: contain;
+            background: #000;
+            border-radius: 4px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25) !important;
+            /* 新增：视频也要有同样的缩放过渡 */
+            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.3s ease;
+            transform-origin: center center;
+            will-change: transform, opacity;
+        }
+        .table>:not(caption)>*>* {
+            border: 1px solid rgb(237, 237, 237);
+        }
+        .table th,
+        .table td {
+            border-left: 0;
+            border-right: 0;
+        }
+        #magnetsContainer td {
+            vertical-align: middle !important;
+            height: 50px;
+        }
+
+        /* 1. 减轻播放器整体的外围阴影 */
+        #lightboxVideo {
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25) !important;
+        }
+
+        /* 2. 针对 WebKit/Blink 内核浏览器的原生控制栏美化（去除会导致画面模糊的 backdrop-filter） */
+        video::-webkit-media-controls-panel {
+            /* 替换原生沉重的纯黑渐变，改为轻柔的半透明渐变 */
+            background-image: linear-gradient(to top, rgba(0, 0, 0, 0.5), transparent) !important;
+            background-color: transparent !important;
+
+            /* 让组件更加紧凑精致 */
+            padding-bottom: 5px;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        /* 3. 调整控件悬停过渡效果（去除会导致画面模糊的 filter: drop-shadow） */
+        video::-webkit-media-controls-play-button,
+        video::-webkit-media-controls-timeline,
+        video::-webkit-media-controls-current-time-display,
+        video::-webkit-media-controls-time-remaining-display,
+        video::-webkit-media-controls-mute-button,
+        video::-webkit-media-controls-volume-slider,
+        video::-webkit-media-controls-fullscreen-button {
+            transition: all 0.2s ease-in-out;
+        }
+
+        /* 影片卡片悬停动画 */
+        .movie-card {
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+        .movie-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12) !important;
+        }
+        .movie-card .card-img-top {
+            transition: transform 0.4s ease;
+        }
+
+        .movie-card-item {
+            flex: 0 0 147px;
+            max-width: 147px;
+        }
+
+        /* 优化预览图网格布局 */
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); /* 响应式：最小180px，自动填满整行 */
+            gap: 15px;
+            width: 100%;
+        }
+
+        .preview-item {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 10; /* 统一卡片比例 */
+            background-color: #f8f9fa; /* 配合基础底色 */
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .preview-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.12);
+        }
+
+        .preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* 保证整张图片完整显示在容器内，不被裁切 */
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .preview-item img:hover {
+            opacity: 0.85; /* 悬停时图片微微变暗，提供交互反馈 */
+        }
+
+        /* 优化影片卡片网格布局 */
+        .movie-card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, 147px); /* 自动填充，固定卡片列宽 */
+            gap: 15px; /* 设置统一的基础间距 */
+            justify-content: space-between; /* 巧妙利用 Grid 特性：满行时两端贴边，不足行时卡片靠左且保持 gap 间距 */
+        }
+
+        .card-title {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #copyNumberBtn:hover {
+            background-color: rgb(236, 236, 236);
+            cursor: pointer;
+        }
+
+        /* ===== 影片卡片图片固定容器（新增） ===== */
+        .movie-card-img-wrap {
+            width: 147px;
+            height: 200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;       /* 垂直居中 */
+            justify-content: center;   /* 水平居中 */
+            background-color: #fff;    /* 原本直接加在图片上的背景色 */
+            overflow: hidden;
+            border-top-left-radius: 4px;  /* 配合 bootstrap card 的圆角 */
+            border-top-right-radius: 4px;
+        }
+
+        /* 内部图片自适应逻辑：横图宽100%高auto，竖图宽auto高100% */
+        .movie-card-img-wrap img {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;       /* 确保比例不失调 */
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div id="detailContent">
+        <div id="loading" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2">加载中...</p>
+        </div>
+
+        <div id="detailCard" class="d-none">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="row">
+                        <h4 id="detailTitle" class="fw-bold mb-3"></h4>
+
+                        <div class="col-md-7">
+                            <img id="detailCover" onerror="this.src='{{ url_for('static', filename='images/noimage.jpg') }}'" class="detail-cover">
+                        </div>
+                        <div class="col-md-5">
+
+                            <ul class="list-group list-group-flush info-list mb-3">
+                                <li class="list-group-item">
+                                    <strong>番号：</strong>
+                                    <span id="detailNumber"></span>
+                                    <i class="bi bi-copy ms-2 text-black" id="copyNumberBtn" onclick="copyNumber()" title="复制"></i>
+                                </li>
+                                <li class="list-group-item"><strong>发行日期：</strong> <span id="detailDate"></span></li>
+                                <li class="list-group-item"><strong>时长：</strong> <span id="detailDuration"></span></li>
+                                <li class="list-group-item"><strong>评分：</strong> <span id="detailScore" class="badge bg-warning text-dark"></span></li>
+                                <li class="list-group-item"><strong>想看人数：</strong> <span id="detailWantWatch"></span></li>
+                                <li class="list-group-item"><strong>看过人数：</strong> <span id="detailWatched"></span></li>
+                                <!-- 类型：0有码 1无码 2欧美 3FC2 -->
+                                <li class="list-group-item d-none"><strong>类型：</strong> <span id="detailType"></span></li>
+                                <!-- 系列 -->
+                                <li class="list-group-item" id="seriesRow"><strong>系列：</strong> <span id="detailSeries"></span></li>
+                                <!-- 导演 -->
+                                <li class="list-group-item" id="directorRow"><strong>导演：</strong> <span id="detailDirector"></span></li>
+                                <!-- 片商 -->
+                                <li class="list-group-item" id="makerRow"><strong>片商：</strong> <span id="detailMaker"></span></li>
+                                <!-- 演员 -->
+                                <li class="list-group-item" id="actorsRow"><strong style="min-width: 50px;">演员：</strong> <span id="detailActors" style="margin-top: -3px;"></span></li>
+                                <!-- 新增排名行 -->
+                                <li class="list-group-item" id="rankingsRow" style="display:none;">
+                                    <span id="detailRankings"></span>
+                                </li>
+                                <!-- 类别 -->
+                                <li class="list-group-item" id="tagsRow"><strong style="min-width: 50px;">类别：</strong> <span id="detailTags"></span></li>
+                            </ul>
+                            <div id="actionGroup" class="mt-3">
+                                <button id="watchlistBtn" class="btn btn-outline-primary" onclick="toggleWatchlist()">加载中...</button>
+                                <button id="watchedBtn" class="btn btn-outline-success mt-2" style="margin-left: 8px;" onclick="toggleWatched()">加载中...</button>
+                                <button id="listBtn" class="btn btn-outline-info" style="margin-left: 8px;" onclick="openListModal()">加入清单</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="magnetsSection" class="mt-4">
+                <h4 class="fw-bold mb-3">磁力链接</h4>
+                <div class="card shadow-sm">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>名称</th>
+                                        <th width="120">大小</th>
+                                        <th width="110">属性</th>
+                                        <th width="170">操作</th>
+                                        <th width="130">时间</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="magnetsContainer"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="previewImagesSection" class="mt-4">
+                <h4 class="fw-bold mb-3">预览图</h4>
+                <div class="preview-grid" id="previewImagesContainer"></div>
+            </div>
+
+            <!-- 演员其他作品 -->
+            <div id="actorMoviesSection" class="mt-4">
+                <h4 class="fw-bold mb-3">TA还出演过</h4>
+                <div class="movie-card-grid" id="actorMoviesContainer"></div>
+            </div>
+
+            <!-- 你可能也喜欢 -->
+            <div id="relativeMoviesSection" class="mt-4">
+                <h4 class="fw-bold mb-3">你可能也喜欢</h4>
+                <div class="movie-card-grid" id="relativeMoviesContainer"></div>
+            </div>
+
+            <div id="reviewsSection" class="mt-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="fw-bold mb-0">用户评论</h4>
+                    <div class="btn-group custom-review-tabs" role="group">
+                        <button class="btn btn-sm" data-sort="hotly" onclick="loadReviews(1, 'hotly')">
+                            <i class="bi bi-fire"></i> 最热
+                        </button>
+                        <button class="btn btn-sm" data-sort="recently" onclick="loadReviews(1, 'recently')">
+                            <i class="bi bi-clock"></i> 最新
+                        </button>
+                    </div>
+                </div>
+                <div id="reviewsList" class="list-group mb-3"></div>
+                <div id="reviewsLoading" class="text-center py-2 d-none">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                    <span class="ms-2">加载中...</span>
+                </div>
+                <div id="loadMoreBtnWrap" class="text-center d-none">
+                    <button class="btn btn-outline-secondary" onclick="loadMoreReviews()">加载更多评论</button>
+                </div>
+            </div>
+
+            <!-- 相关清单 -->
+            <div id="relatedListsSection" class="mt-4">
+                <h4 class="fw-bold mb-3">相关清单</h4>
+                <div id="relatedListsContainer" class="row g-3 mb-3"></div>
+                <div id="relatedListsLoading" class="text-center py-2 d-none">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                    <span class="ms-2">加载中...</span>
+                </div>
+                <div id="loadMoreListsBtnWrap" class="text-center d-none">
+                    <button class="btn btn-outline-secondary" onclick="loadMoreRelatedLists()">加载更多清单</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 看过评价模态框 -->
+    <div class="modal fade" id="watchedModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">评价影片</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">评分 (1-5星)</label>
+                        <select id="scoreSelect" class="form-select">
+                            <option value="5">⭐⭐⭐⭐⭐</option>
+                            <option value="4">⭐⭐⭐⭐</option>
+                            <option value="3">⭐⭐⭐</option>
+                            <option value="2">⭐⭐</option>
+                            <option value="1">⭐</option>
+                            <option value="0">未评分</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">评价 (可选)</label>
+                        <textarea id="contentInput" class="form-control" rows="3" placeholder="写下你的观后感..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger me-auto" id="removeWatchedBtn" style="display:none;">取消看过</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="submitWatchedBtn">提交</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 清单模态框 -->
+    <div class="modal fade" id="listModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">📁 加入清单</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <!-- 主体：只保留清单列表，超出高度时此区域会出现滚动条 -->
+                <div class="modal-body">
+                    <!-- 清单列表 -->
+                    <div id="listContainer">
+                        <div id="listLoading" class="text-center py-3">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                            <span class="ms-2">加载清单...</span>
+                        </div>
+                        <div id="listItems" class="d-none">
+                            <!-- 动态渲染清单项 -->
+                        </div>
+                        <div id="listEmpty" class="d-none text-muted text-center py-3">暂无清单，请创建一个</div>
+                    </div>
+                </div>
+
+                <!-- 底部：固定区域，放置创建功能和关闭按钮 -->
+                <div class="modal-footer flex-column align-items-stretch" style="gap: 10px;">
+                    <!-- 创建新清单 -->
+                    <div class="w-100">
+                        <div class="input-group">
+                            <!-- 这里的 id="newListName" 和原代码完全保持一致 -->
+                            <input type="text" id="newListName" class="form-control" placeholder="输入新清单名称" maxlength="20">
+                            <!-- 保留了原来的 onclick="createNewList()" -->
+                            <button class="btn btn-primary" onclick="createNewList()">创建并加入</button>
+                        </div>
+                        <!-- 保留了原来的反馈信息展示容器 -->
+                        <div id="createListFeedback" class="small text-muted mt-1"></div>
+                    </div>
+
+                    <!-- 关闭按钮 -->
+                    <div class="text-end">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="quickNavMenu" class="quick-nav-menu">
+        <button class="nav-btn" data-target="magnetsSection" data-title="磁力链接">🧲</button>
+        <button class="nav-btn d-none" id="navPreviewBtn" data-target="previewImagesSection" data-title="预览图">🖼️</button>
+        <button class="nav-btn d-none" id="navActorBtn" data-target="actorMoviesSection" data-title="TA还出演过">🎭</button>
+        <button class="nav-btn d-none" id="navRelativeBtn" data-target="relativeMoviesSection" data-title="你可能也喜欢">💖</button>
+        <button class="nav-btn" data-target="reviewsSection" data-title="用户评论">💬</button>
+        <button class="nav-btn" data-target="relatedListsSection" data-title="相关清单">📁</button>
+    </div>
+
+    <!-- 灯箱浮层 -->
+    <div id="lightboxOverlay" class="lightbox-overlay d-none">
+        <a class="lightbox-close" onclick="closeLightbox()">&times;</a>
+        <div class="lightbox-wrapper" onclick="closeLightbox(event)">
+            <img id="lightboxImage" class="lightbox-img d-none" decoding="async" onerror="this.src='{{ url_for('static', filename='images/noimage.jpg') }}'">
+            <video id="lightboxVideo" class="lightbox-img d-none" controls preload="auto"></video>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <!-- 详情页需要 hls.js 用于流媒体 -->
+    <script src="{{ url_for('static', filename='js/hls.js') }}"></script>
+    <script>
+        // 注意：fixImageUrl 已在 base 中定义，这里不再重复
+
+        const movieId = window.location.pathname.split('/').pop();
+
+        let lightboxImages = [];
+        let currentLightboxIndex = 0;
+        let globalHls = null;
+        let currentReview = null;  // 存储完整 review 对象 { id, status, score, content, ... }
+        let currentActiveThumb = null; // 【新增】用于记录当前被点击的缩略图 DOM 元素
+        // ===== 想看 / 取消想看（完全依赖服务器） =====
+        let currentReviewId = null; // 全局变量，存储当前影片的 review id
+        let currentReviewStatus = null;   // 'want_watch' 或 'watched' 或 null
+
+        function formatDate(isoString) {
+            const d = new Date(isoString);
+            const pad = n => String(n).padStart(2, '0');
+            return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        }
+
+        async function loadDetail() {
+            try {
+                const resDetail = await fetch(`/api/movie/${movieId}`);
+                const dataDetail = await resDetail.json();
+                if (!dataDetail.success) throw new Error('获取影片信息失败');
+
+                const m = dataDetail.data.movie;
+
+                // ---- 处理 review 状态 ----
+                currentReview = m.review || null;
+                if (currentReview) {
+                    currentReviewId = currentReview.id;
+                    currentReviewStatus = currentReview.status;
+                } else {
+                    currentReviewId = null;
+                    currentReviewStatus = null;
+                }
+
+                document.getElementById('detailCover').src = `/api/image_proxy?url=${encodeURIComponent(m.cover_url)}`;
+
+                const originTitle = m.origin_title || '';
+
+                document.getElementById('detailTitle').innerHTML = `<span id="number">${m.number}</span> <span id="originTitle" data-origin="${originTitle}">${originTitle}</span>`;
+                document.title = m.number + ' ' + originTitle + ' - JavDB';
+
+                // 获取番号和番号前缀
+                let number = m.number || '';
+                let numberLetter = m.number_letter || '';
+                let detailNumberText = number;
+                if (numberLetter) {
+                    number = number.replace(numberLetter, '');
+                    detailNumberText = `<a href="/code/${numberLetter}" class="text-decoration-none" target="_blank">${numberLetter}</a>${number}`;
+                }
+                document.getElementById('detailNumber').innerHTML = detailNumberText;
+                document.getElementById('detailDate').innerText = m.release_date;
+                let duration = m.duration + ' 分钟'
+                if (m.duration === null) {
+                    duration = '未知'
+                }
+                document.getElementById('detailDuration').innerText = duration;
+                document.getElementById('detailScore').innerText = m.score || '暂无';
+                document.getElementById('detailWantWatch').innerText = m.want_watch_count || 0;
+                document.getElementById('detailWatched').innerText = m.watched_count || 0;
+                document.getElementById('detailType').innerText = m.type || 0;
+
+                // ---- 系列 ----
+                const series = m.series || null;
+                const seriesId = series ? series.id : (m.series_id || null);
+                const seriesName = series ? series.name : (m.series_name || '');
+                let seriesHtml = '-';
+                if (seriesId && seriesName) {
+                    seriesHtml = `<a href="/series/${seriesId}" class="text-decoration-none" target="_blank">${seriesName}</a>`;
+                } else if (seriesName) {
+                    seriesHtml = seriesName;
+                }
+                document.getElementById('detailSeries').innerHTML = seriesHtml;
+                document.getElementById('seriesRow').style.display = (seriesId || seriesName) ? '' : 'none';
+
+                // ---- 导演 ----
+                const director = m.director || null;
+                const directorId = director ? director.id : (m.director_id || null);
+                const directorName = director ? director.name : (m.director_name || '');
+                let directorHtml = '-';
+                if (directorId && directorName) {
+                    directorHtml = `<a href="/director/${directorId}" class="text-decoration-none" target="_blank">${directorName}</a>`;
+                } else if (directorName) {
+                    directorHtml = directorName;
+                }
+                document.getElementById('detailDirector').innerHTML = directorHtml;
+                document.getElementById('directorRow').style.display = (directorId || directorName) ? '' : 'none';
+
+                // ---- 片商 ----
+                const maker = m.maker || null;
+                const makerId = maker ? maker.id : (m.maker_id || null);
+                const makerName = maker ? maker.name : (m.maker_name || '');
+                let makerHtml = '-';
+                if (makerId && makerName) {
+                    makerHtml = `<a href="/maker/${makerId}" class="text-decoration-none" target="_blank">${makerName}</a>`;
+                } else if (makerName) {
+                    makerHtml = makerName;
+                }
+                document.getElementById('detailMaker').innerHTML = makerHtml;
+                document.getElementById('makerRow').style.display = (makerId || makerName) ? '' : 'none';
+
+                // ---- 演员 ----
+                const actors = m.actors || [];
+                const sortedActors = [...actors].sort((a, b) => a.gender - b.gender);
+                const actorsHtml = sortedActors.map(a => {
+                    const gender = a.gender || 0;
+                    const noAvatarImg = gender === 1 ? `{{ url_for('static', filename='images/male-avatar.jpg') }}` : `{{ url_for('static', filename='images/female-avatar.jpg') }}`;
+                    const genderClass = a.gender === 0 ? 'female' : 'male';
+                    const avatarUrl = a.avatar_url ? `/api/image_proxy?url=${encodeURIComponent(a.avatar_url)}` : '';
+                    const avatarImg = avatarUrl ?
+                        `<img src="${avatarUrl}" class="actor-avatar" alt="${a.name}" data-type="avatar" onerror="this.src='${noAvatarImg}'">` :
+                        `<img src="${noAvatarImg}" class="actor-avatar" alt="${a.name}" data-type="avatar">`;
+                    return `<a href="/actor/${a.id}" class="actor-item ${genderClass}" target="_blank">
+                                ${avatarImg}
+                                <span class="actor-name">${a.gender === 0 ? '♀' : '♂'} ${a.name}</span>
+                            </a>`;
+                }).join('');
+                document.getElementById('detailActors').innerHTML = actorsHtml || '无';
+                document.getElementById('actorsRow').style.display = actors.length > 0 ? 'flex' : 'none';
+
+                // ---- 类别 ----
+                const tags = m.tags || [];
+                const movieType = m.type !== undefined ? m.type : 0;
+                const tagsHtml = tags.map(t => {
+                    return `<a href="/tags?type=${movieType}&tags=${t.id}&tag_names=${encodeURIComponent(t.name || '未知')}" class="tag-item" target="_blank">${t.name || '未知'}</a>`;
+                }).join('');
+                document.getElementById('detailTags').innerHTML = tagsHtml || '无';
+                document.getElementById('tagsRow').style.display = tags.length > 0 ? 'flex' : 'none';
+
+                // ---- 排行榜 ----
+                const rankings = m.top_rankings || [];
+                const rankingsRow = document.getElementById('rankingsRow');
+                const rankingsSpan = document.getElementById('detailRankings');
+
+                if (rankings.length > 0) {
+                    const rankingHtml = rankings.map(r => {
+                        return `<div class="mb-1">
+                                    <span class="rank-no">No.${r.ranking}</span>
+                                    <span class="rank-title">${r.title}</span>
+                                </div>`;
+                    }).join('');
+                    rankingsSpan.innerHTML = rankingHtml;
+                    rankingsRow.style.display = '';
+                } else {
+                    rankingsRow.style.display = 'none';
+                }
+
+                // ========== 预览图 & 视频 ==========
+                const previewContainer = document.getElementById('previewImagesContainer');
+                const previewImagesSection = document.getElementById('previewImagesSection');
+                previewContainer.innerHTML = '';
+
+                if (m.has_preview_video && m.preview_video_url) {
+                    let videoPoster = m.cover_url;
+                    if (m.preview_images && m.preview_images.length > 0) {
+                        videoPoster = m.preview_images[0].thumb_url;
+                    }
+                    videoPoster = `/api/image_proxy?url=${encodeURIComponent(videoPoster)}`;
+
+                    previewContainer.innerHTML += `
+                        <div class="preview-item">
+                            <div class="position-relative w-100 h-100" onclick="openVideoLightbox('${m.preview_video_url}', this)">
+                                <img src="${videoPoster}" draggable="false" style="filter: brightness(0.65);" onerror="this.src='{{ url_for('static', filename='images/noimage.jpg') }}'">
+                                <div class="play-btn-overlay">
+                                    <svg width="50" height="50" viewBox="0 0 24 24" fill="rgba(255,255,255,0.85)"><path d="M8 5v14l11-7z"/></svg>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                lightboxImages = (m.preview_images || []).map(p => `/api/image_proxy?url=${encodeURIComponent(p.large_url)}`);
+                if (lightboxImages.length > 0) {
+                    lightboxImages.forEach((lUrl, index) => {
+                        previewContainer.innerHTML += `
+                            <div class="preview-item">
+                                <img src="${lUrl}" draggable="false" onerror="this.src='{{ url_for('static', filename='images/noimage.jpg') }}'" onclick="openLightbox(${index}, this)">
+                            </div>
+                        `;
+                    });
+                    previewImagesSection.classList.remove('d-none');
+                    document.getElementById('navPreviewBtn').classList.remove('d-none');
+                } else {
+                    previewImagesSection.classList.add('d-none');
+                    document.getElementById('navPreviewBtn').classList.add('d-none');
+                }
+
+                // ========== 磁力链接（调用独立函数） ==========
+                loadMagnets(movieId);   // <-- 新增此行，替代原磁力请求代码块
+
+                // ========== 演员其他作品 ==========
+                const actorContainer = document.getElementById('actorMoviesContainer');
+                const actorSection = document.getElementById('actorMoviesSection');
+                actorContainer.innerHTML = '';
+
+                const actorMovies = m.actor_movies || [];
+                if (actorMovies.length > 0) {
+                    actorMovies.forEach(movie => {
+                        const thumb_ = `/api/image_proxy?url=${encodeURIComponent(movie.thumb_url)}`;
+                        const thumb = thumb_.replace('/small_covers/', '/covers/');
+                        const item = document.createElement('div');
+                        item.className = 'movie-card-item';          // 自定义样式类
+                        item.innerHTML = `
+                            <a href="/movie/${movie.id}" class="card-link-block" title="${movie.number}">
+                                <div class="card movie-card h-100" style="border: none;">
+                                    <div class="movie-card-img-wrap">
+                                        <img src="${thumb}" class="card-img-top" onerror="this.src='{{ url_for('static', filename='images/noimage.jpg') }}'" alt="${movie.number}">
+                                    </div>
+                                    <div class="card-body p-2 text-center" title="${movie.number}">
+                                        <small class="text-muted d-block" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${movie.number}</small>
+                                    </div>
+                                </div>
+                            </a>
+                        `;
+                        actorContainer.appendChild(item);
+                    });
+                    actorSection.classList.remove('d-none');
+                    document.getElementById('navActorBtn').classList.remove('d-none');
+                } else {
+                    actorSection.classList.add('d-none');
+                    document.getElementById('navActorBtn').classList.add('d-none');
+                }
+
+                // ========== 你可能也喜欢 ==========
+                const relativeContainer = document.getElementById('relativeMoviesContainer');
+                const relativeSection = document.getElementById('relativeMoviesSection');
+                relativeContainer.innerHTML = '';
+
+                const relatives = m.relative_movies || [];
+                if (relatives.length > 0) {
+                    relatives.forEach(movie => {
+                        const thumb_ = `/api/image_proxy?url=${encodeURIComponent(movie.thumb_url)}`;
+                        const thumb = thumb_.replace('/small_covers/', '/covers/');
+                        const item = document.createElement('div');
+                        item.className = 'movie-card-item';          // 自定义样式类
+                        item.innerHTML = `
+                            <a href="/movie/${movie.id}" class="card-link-block" title="${movie.number}">
+                                <div class="card movie-card h-100" style="border: none;">
+                                    <div class="movie-card-img-wrap">
+                                        <img src="${thumb}" class="card-img-top" onerror="this.src='{{ url_for('static', filename='images/noimage.jpg') }}'" alt="${movie.number}">
+                                    </div>
+                                    <div class="card-body p-2 text-center" title="${movie.number}">
+                                        <small class="text-muted d-block" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${movie.number}</small>
+                                    </div>
+                                </div>
+                            </a>
+                        `;
+                        relativeContainer.appendChild(item);
+                    });
+                    relativeSection.classList.remove('d-none');
+                    document.getElementById('navRelativeBtn').classList.remove('d-none');
+                } else {
+                    relativeSection.classList.add('d-none');
+                    document.getElementById('navRelativeBtn').classList.add('d-none');
+                }
+
+                document.getElementById('loading').classList.add('d-none');
+                document.getElementById('detailCard').classList.remove('d-none');
+
+                const savedSort = localStorage.getItem('movie_review_sort') || 'hotly';
+                loadReviews(1, savedSort);
+                loadRelatedLists(1);
+
+                initWatchlistButton();
+
+            } catch (e) {
+                console.error(e);
+                // ---- 修改开始：错误展示带重试按钮 ----
+                const loadingEl = document.getElementById('loading');
+                loadingEl.innerHTML = `
+                    <p class="text-danger">影片加载失败：${e.message}</p>
+                    <button class="btn btn-primary" onclick="loadDetail()">重试</button>
+                `;
+                document.title = '影片加载失败 - JavDB';
+                // ---- 修改结束 ----
+            }
+        }
+
+        // 磁力链接加载函数（独立）
+        async function loadMagnets(movieId) {
+            const magContainer = document.getElementById('magnetsContainer');
+            // 显示加载中状态
+            magContainer.innerHTML = '<tr><td colspan="5" class="text-center text-muted">加载磁力链接中...</td></tr>';
+
+            try {
+                const resMag = await fetch(`/api/movie/${movieId}/magnets`);
+                const dataMag = await resMag.json();
+                if (!dataMag.success) throw new Error(dataMag.message || '获取磁力失败');
+
+                magContainer.innerHTML = '';
+                if (dataMag.data.magnets.length > 0) {
+                    dataMag.data.magnets.forEach(mag => {
+                        var sizeText = mag.size > 1024 ? (mag.size / 1024).toFixed(2) + ' GB' : mag.size + ' MB';
+                        if (mag.size === 0) sizeText = '未知';
+                        const link = `magnet:?xt=urn:btih:${mag.hash}`;
+                        magContainer.innerHTML += `
+                            <tr>
+                                <td class="text-break" style="max-width: 250px;"><a href="${link}" class="link-offset-2 link-underline link-underline-opacity-0 text-black text-decoration-none">${mag.name}</a></td>
+                                <td class="text-nowrap">${sizeText}</td>
+                                <td>
+                                    ${mag.hd ? '<span class="badge bg-primary">HD</span>' : ''}
+                                    ${mag.cnsub ? '<span class="badge bg-warning text-dark">字幕</span>' : ''}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-success" style="width: 100px;" onclick="copyText('${link}', this)">复制磁链</button>
+                                </td>
+                                <td class="text-nowrap">${mag.created_at}</td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    magContainer.innerHTML = '<tr><td colspan="5" class="text-center text-muted">暂无磁力链接</td></tr>';
+                }
+            } catch (e) {
+                // ---- 错误展示带重试按钮 ----
+                magContainer.innerHTML = `
+                    <tr><td colspan="5" class="text-center text-danger">磁力加载失败：${e.message}</td></tr>
+                    <tr><td colspan="5" class="text-center">
+                        <button class="btn btn-sm btn-outline-primary" onclick="loadMagnets('${movieId}')">重试</button>
+                    </td></tr>
+                `;
+                // ---- 错误结束 ----
+            }
+        }
+
+        // ===== 清单相关功能 =====
+        let listModalInstance = null;
+
+        function openListModal() {
+            if (!listModalInstance) {
+                listModalInstance = new bootstrap.Modal(document.getElementById('listModal'));
+            }
+            // 清空之前的状态
+            document.getElementById('listItems').classList.add('d-none');
+            document.getElementById('listEmpty').classList.add('d-none');
+            document.getElementById('listLoading').classList.remove('d-none');
+            document.getElementById('listContainer').style.display = 'block';
+            document.getElementById('createListFeedback').innerHTML = '';
+            listModalInstance.show();
+            loadMovieLists();
+        }
+
+        async function loadMovieLists() {
+            const container = document.getElementById('listItems');
+            const loading = document.getElementById('listLoading');
+            const empty = document.getElementById('listEmpty');
+            const movieId = window.location.pathname.split('/').pop();
+
+            try {
+                const res = await fetch(`/api/movie/${movieId}/lists?page=1&limit=24`);
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || '加载失败');
+
+                const lists = data.data.lists || [];
+                loading.classList.add('d-none');
+
+                if (lists.length === 0) {
+                    empty.classList.remove('d-none');
+                    container.classList.add('d-none');
+                    return;
+                }
+
+                container.innerHTML = '';
+                lists.forEach(list => {
+                    const hasMovie = list.has_movie || false;
+                    const btnClass = hasMovie ? 'btn-danger' : 'btn-outline-success';
+                    const btnText = hasMovie ? '移除' : '加入';
+                    const item = document.createElement('div');
+                    item.className = 'd-flex justify-content-between align-items-center py-2 border-bottom';
+                    item.innerHTML = `
+                        <span>${list.name} (${list.movies_count})</span>
+                        <button class="btn btn-sm ${btnClass}" data-list-id="${list.id}" data-has="${hasMovie}" onclick="toggleList(this, '${list.id}')">
+                            ${btnText}
+                        </button>
+                    `;
+                    container.appendChild(item);
+                });
+                container.classList.remove('d-none');
+                empty.classList.add('d-none');
+            } catch (e) {
+                loading.classList.add('d-none');
+                container.innerHTML = `<div class="text-danger text-center">加载失败：${e.message}</div>`;
+                container.classList.remove('d-none');
+            }
+        }
+
+        async function toggleList(btn, listId) {
+            const movieId = window.location.pathname.split('/').pop();
+            const currentHas = btn.dataset.has === 'true';
+            const action = currentHas ? 'remove' : 'add';
+            const originalText = btn.innerText;
+            btn.disabled = true;
+            btn.innerText = '处理中...';
+
+            try {
+                const formData = new FormData();
+                formData.append('movie_id', movieId);
+                formData.append('action', action);
+
+                const res = await fetch(`/api/lists/${listId}/movie_action`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || '操作失败');
+
+                // 切换按钮状态
+                const newHas = !currentHas;
+                btn.dataset.has = newHas ? 'true' : 'false';
+                btn.className = newHas ? 'btn btn-sm btn-danger' : 'btn btn-sm btn-outline-success';
+                btn.innerText = newHas ? '移除' : '加入';
+                // 可以显示短暂的成功提示（可选）
+            } catch (e) {
+                alert('操作失败：' + e.message);
+            } finally {
+                btn.disabled = false;
+                if (btn.innerText === '处理中...') btn.innerText = originalText;
+            }
+        }
+
+        async function createNewList() {
+            const input = document.getElementById('newListName');
+            const name = input.value.trim();
+            if (!name) {
+                document.getElementById('createListFeedback').innerHTML = '<span class="text-danger">请输入清单名称</span>';
+                return;
+            }
+            const movieId = window.location.pathname.split('/').pop();
+            const btn = document.querySelector('#listModal .btn-primary');
+            btn.disabled = true;
+            const originalText = btn.innerText;
+            btn.innerText = '创建中...';
+            document.getElementById('createListFeedback').innerHTML = '';
+
+            try {
+                const formData = new FormData();
+                formData.append('movie_id', movieId);
+                formData.append('name', name);
+
+                const res = await fetch('/api/lists', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || '创建失败');
+
+                document.getElementById('createListFeedback').innerHTML = '<span class="text-success">✅ 创建成功，已加入该清单</span>';
+                input.value = '';
+                // 刷新清单列表
+                loadMovieLists();
+            } catch (e) {
+                document.getElementById('createListFeedback').innerHTML = `<span class="text-danger">创建失败：${e.message}</span>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerText = originalText;
+            }
+        }
+
+        // ===== 想看 / 取消想看 =====
+        function initWatchlistButton() {
+            const watchBtn = document.getElementById('watchlistBtn');
+            const watchedBtn = document.getElementById('watchedBtn');
+
+            // 想看按钮
+            if (currentReviewStatus === 'want_watch') {
+                watchBtn.textContent = '已想看';
+                watchBtn.className = 'btn btn-danger';
+                watchBtn.dataset.reviewId = currentReviewId;
+                watchBtn.dataset.action = 'remove';   // ← 添加这一行
+            } else {
+                watchBtn.textContent = '想看';
+                watchBtn.className = 'btn btn-outline-primary';
+                delete watchBtn.dataset.reviewId;
+                watchBtn.dataset.action = 'add';      // ← 添加这一行
+            }
+
+            // 看过按钮（无需 action，因为统一弹出面板）
+            if (currentReviewStatus === 'watched') {
+                watchedBtn.textContent = '已看过';
+                watchedBtn.className = 'btn btn-danger';
+                watchedBtn.dataset.reviewId = currentReviewId;
+            } else {
+                watchedBtn.textContent = '看过';
+                watchedBtn.className = 'btn btn-outline-success';
+                delete watchedBtn.dataset.reviewId;
+            }
+        }
+
+
+        async function addToWatchlist(movieId) {
+            const formData = new FormData();
+            formData.append('status', 'want_watch');
+            formData.append('score', '0');
+            formData.append('content', '');
+            const res = await fetch(`/api/movie/${movieId}/reviews`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message || '添加失败');
+            return data.data.review.id;
+        }
+
+        async function removeFromWatchlist(movieId, reviewId) {
+            const res = await fetch(`/api/movie/${movieId}/reviews/${reviewId}`, {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message || '删除失败');
+        }
+
+        async function toggleWatchlist() {
+            const btn = document.getElementById('watchlistBtn');
+            const movieId = window.location.pathname.split('/').pop();
+            const action = btn.dataset.action;
+
+            if (btn.disabled) return;
+            btn.disabled = true;
+            const originalText = btn.textContent;
+            btn.textContent = '提交中...';
+
+            try {
+                if (action === 'add') {
+                    const reviewId = await addToWatchlist(movieId);
+                    currentReviewId = reviewId;
+                    currentReviewStatus = 'want_watch';
+                    currentReview = null;   // 清除旧的看过状态
+                } else if (action === 'remove') {
+                    const reviewId = btn.dataset.reviewId;
+                    await removeFromWatchlist(movieId, reviewId);
+                    currentReviewId = null;
+                    currentReviewStatus = null;
+                    currentReview = null;
+                } else {
+                    return; // 未知 action，不处理
+                }
+                initWatchlistButton();
+            } catch (e) {
+                alert('操作失败：' + e.message);
+            } finally {
+                btn.disabled = false;
+                if (btn.textContent === '提交中...') {
+                    btn.textContent = originalText;
+                }
+            }
+        }
+
+        // ===== 看过 / 取消看过 =====
+        async function addWatched(movieId, score, content) {
+            const formData = new FormData();
+            formData.append('status', 'watched');
+            formData.append('score', String(score));
+            formData.append('content', content || '');
+            const res = await fetch(`/api/movie/${movieId}/reviews`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message || '添加失败');
+            return data.data.review.id;
+        }
+
+        async function toggleWatched() {
+            // 总是弹出模态框
+            const modal = new bootstrap.Modal(document.getElementById('watchedModal'));
+            // 预填当前评分和评价（如果有）
+            const scoreSelect = document.getElementById('scoreSelect');
+            const contentInput = document.getElementById('contentInput');
+            // 在 toggleWatched 函数中，预填部分改为：
+            if (currentReview && currentReview.status === 'watched') {
+                // 如果 score 存在且大于0，则选中对应值；否则选中“未评分”（0）
+                const scoreVal = (currentReview.score && currentReview.score > 0) ? currentReview.score : 0;
+                scoreSelect.value = scoreVal;
+                contentInput.value = currentReview.content || '';
+                document.getElementById('removeWatchedBtn').style.display = 'inline-block';
+            } else {
+                scoreSelect.value = 0;   // 默认“未评分”
+                contentInput.value = '';
+                document.getElementById('removeWatchedBtn').style.display = 'none';
+            }
+            modal.show();
+
+            // 绑定提交事件（防止重复绑定）
+            const submitBtn = document.getElementById('submitWatchedBtn');
+            const newSubmit = async function() {
+                // 防止重复提交
+                if (submitBtn.disabled) return;
+                submitBtn.disabled = true;
+                const originalText = submitBtn.textContent;
+                submitBtn.textContent = '提交中...';
+
+                const score = parseInt(scoreSelect.value, 10) || 0;  // 若值为0或NaN则变为0
+                const content = contentInput.value.trim();
+                try {
+                    const newId = await addWatched(movieId, score, content);
+                    // 更新全局 review
+                    currentReview = { id: newId, status: 'watched', score: score, content: content };
+                    currentReviewId = newId;
+                    currentReviewStatus = 'watched';
+                    initWatchlistButton();
+                    modal.hide();
+                    contentInput.value = '';
+                } catch (e) {
+                    alert('提交失败：' + e.message);
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                }
+            };
+            submitBtn.onclick = newSubmit;
+
+            // 取消看过按钮
+            const removeBtn = document.getElementById('removeWatchedBtn');
+            const removeHandler = async function() {
+                if (removeBtn.disabled) return;
+                if (!currentReviewId) return;
+                removeBtn.disabled = true;
+                const originalText = removeBtn.textContent;
+                removeBtn.textContent = '取消中...';
+                try {
+                    await removeFromWatchlist(movieId, currentReviewId);
+                    currentReview = null;
+                    currentReviewId = null;
+                    currentReviewStatus = null;
+                    initWatchlistButton();
+                    modal.hide();
+                } catch (e) {
+                    alert('取消看过失败：' + e.message);
+                } finally {
+                    removeBtn.disabled = false;
+                    removeBtn.textContent = originalText;
+                }
+            };
+            removeBtn.onclick = removeHandler;
+        }
+
+        // ===== 相关清单 =====
+        let relatedListsPage = 1;
+        let hasMoreRelatedLists = false;
+        let isLoadingRelatedLists = false;
+
+        async function loadRelatedLists(page = 1, append = false) {
+            if (isLoadingRelatedLists) return;
+            isLoadingRelatedLists = true;
+            document.getElementById('relatedListsLoading').classList.remove('d-none');
+            document.getElementById('loadMoreListsBtnWrap').classList.add('d-none');
+
+            // 如果是追加模式，移除旧的错误提示
+            if (append) {
+                const oldErr = document.getElementById('relatedLoadMoreError');
+                if (oldErr) oldErr.remove();
+            }
+
+            try {
+                const res = await fetch(`/api/movie/${movieId}/related-lists?page=${page}&limit=12`);
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || '加载相关清单失败');
+                const lists = data.data.lists || [];
+                const container = document.getElementById('relatedListsContainer');
+
+                if (!append) container.innerHTML = '';  // 首次加载清空容器
+                if (lists.length === 0 && !append) {
+                    container.innerHTML = '<div class="col-12 text-muted text-center py-3">暂无相关清单</div>';
+                    return;
+                }
+
+                lists.forEach(list => {
+                    const col = document.createElement('div');
+                    col.className = 'col-md-3 col-6';
+                    col.innerHTML = `
+                        <a href="/list/${list.id}" target="_blank" class="card-link-block text-decoration-none" title="${list.name}">
+                            <div class="card h-100 shadow-sm border-0 list-hover">
+                                <div class="card-body">
+                                    <h6 class="card-title">${list.name}</h6>
+                                    <p class="card-text small text-muted">
+                                        📀 ${list.movies_count} 部 &nbsp;|&nbsp; 👁️ ${list.views_count} &nbsp;|&nbsp; ⭐ ${list.collections_count}
+                                    </p>
+                                </div>
+                            </div>
+                        </a>
+                    `;
+                    container.appendChild(col);
+                });
+
+                const limit = 12;
+                hasMoreRelatedLists = lists.length === limit;
+                relatedListsPage = page;
+                if (hasMoreRelatedLists) {
+                    document.getElementById('loadMoreListsBtnWrap').classList.remove('d-none');
+                } else {
+                    document.getElementById('loadMoreListsBtnWrap').classList.add('d-none');
+                }
+            } catch (e) {
+                console.error(e);
+                const container = document.getElementById('relatedListsContainer');
+                if (append) {
+                    // 追加模式：保留已有内容，只在底部追加错误
+                    const errorDiv = document.createElement('div');
+                    errorDiv.id = 'relatedLoadMoreError';
+                    errorDiv.className = 'col-12 text-center text-danger mt-2';
+                    errorDiv.innerHTML = `
+                        <span>加载更多清单失败：${e.message}</span>
+                        <button class="btn btn-sm btn-outline-primary ms-2" onclick="loadMoreRelatedLists()">重试</button>
+                    `;
+                    container.appendChild(errorDiv);
+                    // 隐藏原“加载更多”按钮，因为已有重试按钮
+                    document.getElementById('loadMoreListsBtnWrap').classList.add('d-none');
+                } else {
+                    // 首次加载：清空容器并显示错误
+                    container.innerHTML = `
+                        <div class="col-12 text-danger text-center">加载相关清单失败：${e.message}</div>
+                        <div class="col-12 text-center mt-2">
+                            <button class="btn btn-sm btn-outline-primary" onclick="loadRelatedLists(1, false)">重试</button>
+                        </div>
+                    `;
+                    document.getElementById('loadMoreListsBtnWrap').classList.add('d-none');
+                }
+                // 隐藏加载动画（finally 中也会执行，但提前隐藏避免闪烁）
+                document.getElementById('relatedListsLoading').classList.add('d-none');
+            } finally {
+                isLoadingRelatedLists = false;
+                document.getElementById('relatedListsLoading').classList.add('d-none');
+            }
+        }
+
+        function loadMoreRelatedLists() {
+            if (isLoadingRelatedLists || !hasMoreRelatedLists) return;
+            loadRelatedLists(relatedListsPage + 1, true);
+        }
+
+        /**
+         * 后台静默预加载相邻图片（不阻塞页面 UI）
+         * @param {number} currentIndex - 当前浏览的图片索引
+         */
+        function preloadAdjacentImages(currentIndex) {
+            if (!lightboxImages || lightboxImages.length <= 1) return;
+
+            // 计算上一张和下一张的索引（支持循环）
+            const nextIndex = (currentIndex + 1) % lightboxImages.length;
+            const prevIndex = (currentIndex - 1 + lightboxImages.length) % lightboxImages.length;
+
+            // 后台利用内存 Image 对象静默加载并解码
+            [nextIndex, prevIndex].forEach(idx => {
+                const img = new Image();
+                img.src = lightboxImages[idx];
+                // 如果浏览器支持原生异步解码方法，提前进行解码缓存
+                if (img.decode) {
+                    img.decode().catch(() => {});
+                }
+            });
+        }
+
+        // ===== 图片 / 视频灯箱 =====
+        function openLightbox(index, thumbEl) {
+            if (!lightboxImages.length) return;
+            currentLightboxIndex = index;
+            currentActiveThumb = thumbEl; // 记录起点
+
+            const overlay = document.getElementById('lightboxOverlay');
+            const img = document.getElementById('lightboxImage');
+            const vid = document.getElementById('lightboxVideo');
+
+            vid.classList.add('d-none');
+            img.classList.remove('d-none');
+            img.src = lightboxImages[currentLightboxIndex];
+
+            // 动画前置准备：将背景设为全透明
+            overlay.style.backgroundColor = 'rgba(0,0,0,0)';
+            overlay.classList.remove('d-none');
+            document.body.style.overflow = 'hidden';
+
+            // 触发重绘后恢复背景色（触发背景变黑渐变）
+            void overlay.offsetWidth;
+            overlay.style.backgroundColor = '';
+
+            // 触发飞入屏幕中心的动画
+            animateToCenter(img, currentActiveThumb);
+
+            document.addEventListener('keydown', handleLightboxKey);
+            overlay.addEventListener('wheel', handleLightboxWheel, { passive: false });
+            preloadAdjacentImages(currentLightboxIndex);
+        }
+
+        function openVideoLightbox(videoUrl, thumbEl) {
+            currentActiveThumb = thumbEl; // 记录起点
+            const overlay = document.getElementById('lightboxOverlay');
+            const img = document.getElementById('lightboxImage');
+            const vid = document.getElementById('lightboxVideo');
+
+            img.classList.add('d-none');
+            vid.classList.remove('d-none');
+
+            overlay.style.backgroundColor = 'rgba(0,0,0,0)';
+            overlay.classList.remove('d-none');
+            document.body.style.overflow = 'hidden';
+
+            void overlay.offsetWidth;
+            overlay.style.backgroundColor = '';
+
+            // 触发视频界面的飞入动画
+            animateToCenter(vid, currentActiveThumb);
+            initVideoMemory(vid);
+
+            // ---------- 新增：判断视频类型 ----------
+            const isMp4 = videoUrl.toLowerCase().includes('.mp4') || videoUrl.includes('video/mp4');
+
+            if (isMp4) {
+                // ----- MP4 直连播放（不使用 HLS）-----
+                // 清理可能存在的 HLS 实例
+                if (window.globalHls) {
+                    window.globalHls.destroy();
+                    window.globalHls = null;
+                }
+                // 直接设置 src 并播放
+                vid.src = videoUrl;
+                vid.play();
+
+                // 绑定键盘关闭事件（与 HLS 共用）
+                document.addEventListener('keydown', handleVideoKey);
+                return; // 直接返回，不再执行后续 HLS 逻辑
+            }
+
+            // ----- 原有的 HLS 播放逻辑（m3u8）-----
+            if (Hls.isSupported()) {
+                if (window.globalHls) window.globalHls.destroy();
+                window.globalHls = new Hls();
+                window.globalHls.loadSource(videoUrl);
+                window.globalHls.attachMedia(vid);
+                window.globalHls.on(Hls.Events.MANIFEST_PARSED, function() {
+                    vid.play();
+                });
+            } else if (vid.canPlayType('application/vnd.apple.mpegurl')) {
+                vid.src = videoUrl;
+                vid.play();
+            }
+
+            document.addEventListener('keydown', handleVideoKey);
+        }
+
+        function closeLightbox(event) {
+            // 如果是点击背景，或者是点击关闭按钮（关闭按钮未传递event）
+            if (event && event.target !== event.currentTarget && !event.target.classList.contains('lightbox-close')) return;
+
+            const overlay = document.getElementById('lightboxOverlay');
+            const img = document.getElementById('lightboxImage');
+            const vid = document.getElementById('lightboxVideo');
+
+            // 判断当前在播放的是图片还是视频
+            const activeMedia = !img.classList.contains('d-none') ? img : (!vid.classList.contains('d-none') ? vid : null);
+
+            // 如果有活跃元素且有起点元素，执行缩小飞回原位的动画
+            if (activeMedia && currentActiveThumb) {
+                const rect = currentActiveThumb.getBoundingClientRect();
+                const vW = window.innerWidth;
+                const vH = window.innerHeight;
+
+                const translateX = (rect.left + rect.width / 2) - vW / 2;
+                const translateY = (rect.top + rect.height / 2) - vH / 2;
+                const scale = rect.width / (activeMedia.offsetWidth || vW * 0.8);
+
+                // 背景淡出
+                overlay.style.backgroundColor = 'rgba(0,0,0,0)';
+
+                // 媒体飞回缩略图
+                activeMedia.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+                activeMedia.style.opacity = '0';
+
+                // 等待 300ms 动画结束后彻底清理 DOM 状态
+                setTimeout(() => finalizeClose(overlay, vid, img), 300);
+            } else {
+                finalizeClose(overlay, vid, img);
+            }
+        }
+
+        // 清理与重置状态的内部函数
+        function finalizeClose(overlay, vid, img) {
+            overlay.classList.add('d-none');
+            overlay.style.backgroundColor = ''; // 恢复样式表的默认值
+            document.body.style.overflow = '';
+
+            // 重置媒体变换状态
+            img.style.transition = 'none';
+            img.style.transform = 'translate(0,0) scale(1)';
+            img.style.opacity = '1';
+
+            vid.style.transition = 'none';
+            vid.style.transform = 'translate(0,0) scale(1)';
+            vid.style.opacity = '1';
+
+            vid.pause();
+            vid.src = "";
+            if (globalHls) {
+                globalHls.destroy();
+                globalHls = null;
+            }
+
+            document.removeEventListener('keydown', handleLightboxKey);
+            overlay.removeEventListener('wheel', handleLightboxWheel);
+            document.removeEventListener('keydown', handleVideoKey);
+        }
+
+        function navigateLightbox(direction) {
+            if (!lightboxImages.length) return;
+
+            currentLightboxIndex = (currentLightboxIndex + direction + lightboxImages.length) % lightboxImages.length;
+            const img = document.getElementById('lightboxImage');
+
+            // 临时关闭过渡
+            img.style.transition = 'none';
+            img.src = lightboxImages[currentLightboxIndex];
+            // 强制重绘确保 src 更新
+            void img.offsetWidth;
+            // 恢复过渡（但后续动画不会再触发，因 transform 不变）
+            img.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.3s ease';
+
+            preloadAdjacentImages(currentLightboxIndex);
+            // 更新缩略图引用（用于关闭动画）
+            const allThumbs = document.querySelectorAll('#previewImagesContainer .preview-item img[onclick^="openLightbox"]');
+            if (allThumbs[currentLightboxIndex]) {
+                currentActiveThumb = allThumbs[currentLightboxIndex];
+            }
+        }
+
+        let keyThrottle = false;  // 放在全局变量区域
+
+        function handleLightboxKey(e) {
+            if (keyThrottle) return;
+
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                e.preventDefault();
+                keyThrottle = true;
+                navigateLightbox(1);
+                setTimeout(() => { keyThrottle = false; }, 50);
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                keyThrottle = true;
+                navigateLightbox(-1);
+                setTimeout(() => { keyThrottle = false; }, 50);
+            } else if (e.key === 'Escape') {
+                closeLightbox();
+            }
+        }
+
+        function handleVideoKey(e) {
+            if (e.key === 'Escape') closeLightbox();
+        }
+
+        let wheelThrottle = false;
+
+        function handleLightboxWheel(e) {
+            e.preventDefault();
+            if (wheelThrottle) return;
+            wheelThrottle = true;
+            if (e.deltaY > 0) navigateLightbox(1);
+            else if (e.deltaY < 0) navigateLightbox(-1);
+            setTimeout(() => { wheelThrottle = false; }, 50);
+        }
+
+        function copyText(text, btn) {
+            navigator.clipboard.writeText(text).then(() => {
+                btn.innerText = '已复制';
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-secondary');
+            }).catch(err => {
+                prompt("请手动复制:", text);
+            });
+        }
+
+        // ===== 评论 =====
+        let reviewController = null;
+        let loadMoreController = null;
+        let isLoadingReviews = false;
+        let currentSort = 'hotly';
+        let currentReviewPage = 1;
+        let hasMoreReviews = false;
+
+        function getUserColor(watchedCount) {
+            if (watchedCount < 50) return "#4a4a4a";
+            if (watchedCount < 200) return "#22c55e";
+            if (watchedCount < 500) return "#3b82f6";
+            if (watchedCount < 1000) return "#a855f7";
+            if (watchedCount < 2000) return "#f97316";
+            if (watchedCount < 3000) return "#eab308";
+            if (watchedCount < 4000) return "#ef4444";
+            return "#ec4899";
+        }
+
+        function renderReviews(reviews, append = false) {
+            const container = document.getElementById('reviewsList');
+            if (!append) container.innerHTML = '';
+            if (reviews.length === 0 && !append) {
+                container.innerHTML = '<div class="text-muted text-center py-3">暂无评论</div>';
+                return;
+            }
+            reviews.forEach(r => {
+                const userColor = getUserColor(r.watched_count);
+                const dateStr = formatDate(r.created_at);
+                let stars = '★'.repeat(Math.round(r.score)) + '☆'.repeat(5 - Math.round(r.score));
+                let ml = 'margin-left: 14px;';
+                if (r.score <= 0) {
+                    stars = '';
+                    ml = '';
+                }
+                const item = document.createElement('div');
+                item.className = 'list-group-item comment-hover';
+                item.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span style="color: ${userColor}; cursor: default; font-size: 16px;" title="看过${r.watched_count}部影片">${r.username}</span>
+                            <span class="text-warning" style="font-size: 20px;${ml}">${stars}</span>
+                            <span class="badge text-muted small fw-normal" title="点赞" data-review-id="${r.id}" data-liked="${r.liked}" onclick="toggleLike(this)" style="font-size: 0.82rem;cursor: pointer;"><span style="font-size: 1.15rem;">👍</span> <span class="like-count" style="margin-left: -5px;font-size: 0.9rem;">${r.likes_count || 0}</span></span>
+                        </div>
+                        <small class="text-muted">${dateStr}</small>
+                    </div>
+                    <p class="mb-0 text-break" style="padding-bottom: 8px; padding-top: 5px; line-height: 26px; white-space: pre-wrap;">${r.content}</p>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        async function loadReviews(page, sort) {
+            if (reviewController) { reviewController.abort(); reviewController = null; }
+            if (loadMoreController) { loadMoreController.abort(); loadMoreController = null; }
+
+            document.querySelectorAll('#reviewsSection .btn-group .btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.sort === sort) btn.classList.add('active');
+            });
+
+            isLoadingReviews = true;
+            document.getElementById('reviewsLoading').classList.remove('d-none');
+            document.getElementById('loadMoreBtnWrap').classList.add('d-none');
+
+            const controller = new AbortController();
+            reviewController = controller;
+
+            try {
+                const url = `/api/movie/${movieId}/reviews?sort_by=${sort}&page=${page}&limit=24`;
+                const res = await fetch(url, { signal: controller.signal });
+                if (!res.ok) throw new Error('HTTP error');
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || '加载失败');
+                const reviews = data.data.reviews || [];
+                const limit = 24;
+                hasMoreReviews = reviews.length === limit;
+                currentReviewPage = page;
+                currentSort = sort;
+
+                localStorage.setItem('movie_review_sort', sort);
+
+                renderReviews(reviews, false);
+                if (hasMoreReviews) {
+                    document.getElementById('loadMoreBtnWrap').classList.remove('d-none');
+                } else {
+                    document.getElementById('loadMoreBtnWrap').classList.add('d-none');
+                }
+            } catch (e) {
+                if (e.name === 'AbortError') return;
+                console.error(e);
+                // ---- 修改开始：显示错误及重试按钮 ----
+                const container = document.getElementById('reviewsList');
+                container.innerHTML = `
+                    <div class="text-danger" style="text-align: center;">加载评论失败：${e.message}</div>
+                    <div class="text-center mt-2">
+                        <button class="btn btn-sm btn-outline-primary" onclick="loadReviews(1, '${sort}')">重试</button>
+                    </div>
+                `;
+                document.getElementById('loadMoreBtnWrap').classList.add('d-none');
+                // ---- 修改结束 ----
+            } finally {
+                isLoadingReviews = false;
+                document.getElementById('reviewsLoading').classList.add('d-none');
+                if (reviewController === controller) reviewController = null;
+            }
+        }
+
+        async function loadMoreReviews() {
+            if (isLoadingReviews || !hasMoreReviews) return;
+            if (loadMoreController) { loadMoreController.abort(); loadMoreController = null; }
+
+            // ---------- 新增：移除旧的错误提示 ----------
+            const oldError = document.getElementById('loadMoreError');
+            if (oldError) oldError.remove();
+
+            document.getElementById('loadMoreBtnWrap').classList.add('d-none');
+            isLoadingReviews = true;
+            document.getElementById('reviewsLoading').classList.remove('d-none');
+
+            const controller = new AbortController();
+            loadMoreController = controller;
+            const nextPage = currentReviewPage + 1;
+
+            try {
+                const url = `/api/movie/${movieId}/reviews?sort_by=${currentSort}&page=${nextPage}&limit=24`;
+                const res = await fetch(url, { signal: controller.signal });
+                if (!res.ok) throw new Error('HTTP error');
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || '加载失败');
+                const reviews = data.data.reviews || [];
+                const limit = 24;
+                hasMoreReviews = reviews.length === limit;
+                currentReviewPage = nextPage;
+
+                renderReviews(reviews, true);
+                if (hasMoreReviews) {
+                    document.getElementById('loadMoreBtnWrap').classList.remove('d-none');
+                }
+            } catch (e) {
+                if (e.name === 'AbortError') return;
+                console.error(e);
+                // ---------- 修改：只追加一个错误提示，不显示原按钮 ----------
+                const container = document.getElementById('reviewsList');
+                const errorDiv = document.createElement('div');
+                errorDiv.id = 'loadMoreError';   // 固定 id，便于移除
+                errorDiv.className = 'text-center text-danger mt-2';
+                errorDiv.innerHTML = `
+                    <span>加载更多失败：${e.message}</span>
+                    <button class="btn btn-sm btn-outline-primary ms-2" onclick="loadMoreReviews()">重试</button>
+                `;
+                container.appendChild(errorDiv);
+                // 不再显示 loadMoreBtnWrap（因为已经有重试按钮了）
+            } finally {
+                isLoadingReviews = false;
+                document.getElementById('reviewsLoading').classList.add('d-none');
+                if (loadMoreController === controller) loadMoreController = null;
+            }
+        }
+
+        // ===== 初始化快速定位导航 =====
+        function initQuickNav() {
+            const navMenu = document.getElementById('quickNavMenu');
+            if (!navMenu) return;
+
+            // 🔥 直接让菜单保持可见
+            navMenu.classList.add('visible');
+
+            // 绑定点击事件，平滑滚动到指定区域
+            document.querySelectorAll('.quick-nav-menu .nav-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const targetId = this.getAttribute('data-target');
+                    const targetEl = document.getElementById(targetId);
+                    if (targetEl) {
+                        // 留出 74px 的顶部安全距离，防止被浏览器标签栏边缘贴太紧
+                        const offset = 74;
+                        const elementPosition = targetEl.getBoundingClientRect().top;
+                        const offsetPosition = elementPosition + window.pageYOffset - offset;
+
+                        window.scrollTo({
+                            top: offsetPosition,
+                            behavior: "smooth"
+                        });
+                    }
+                });
+            });
+        }
+
+        async function toggleLike(btn) {
+            const reviewId = btn.dataset.reviewId;
+            const movieId = window.location.pathname.split('/').pop();
+            const isLiked = btn.dataset.liked === 'true';
+            const countSpan = btn.querySelector('.like-count');
+            let currentCount = parseInt(countSpan.innerText, 10) || 0;
+
+            // 防止重复点击
+            if (btn.disabled) return;
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`/api/movie/${movieId}/reviews/${reviewId}/like`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || '操作失败');
+
+                // 切换状态
+                const newLiked = !isLiked;
+                btn.dataset.liked = newLiked ? 'true' : 'false';
+                countSpan.innerText = newLiked ? currentCount + 1 : Math.max(currentCount - 1, 0);
+                btn.title = '已点赞';
+            } catch (e) {
+                alert('点赞失败：' + e.message);
+                if (!e.success && e.message.includes('你已經點過贊了')) {
+                    btn.title = '已点赞';
+                } else {
+                    btn.disabled = false;
+                }
+            }
+        }
+
+        /**
+         * 执行从缩略图飞到屏幕中央的动画
+         * @param {HTMLElement} targetMedia - 屏幕中央弹出的大图或视频 DOM
+         * @param {HTMLElement} sourceThumb - 被点击的缩略图 DOM
+         */
+        function animateToCenter(targetMedia, sourceThumb) {
+            if (!sourceThumb) {
+                targetMedia.style.transform = 'translate(0px, 0px) scale(1)';
+                targetMedia.style.opacity = '1';
+                return;
+            }
+
+            // 获取缩略图在屏幕中的坐标和尺寸
+            const rect = sourceThumb.getBoundingClientRect();
+            const vW = window.innerWidth;
+            const vH = window.innerHeight;
+
+            // 计算位移量 (从屏幕中心到缩略图中心)
+            const sourceCenterX = rect.left + rect.width / 2;
+            const sourceCenterY = rect.top + rect.height / 2;
+            const translateX = sourceCenterX - vW / 2;
+            const translateY = sourceCenterY - vH / 2;
+
+            // 计算缩放比例 (大约值，缩放至缩略图宽度)
+            const scale = rect.width / (vW * 0.8);
+
+            // 1. 瞬移到缩略图位置并变透明 (关闭动画)
+            targetMedia.style.transition = 'none';
+            targetMedia.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+            targetMedia.style.opacity = '0.3';
+
+            // 强制浏览器重绘 (关键步骤)
+            void targetMedia.offsetWidth;
+
+            // 2. 开启过渡，飞回屏幕中央
+            targetMedia.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.3s ease';
+            targetMedia.style.transform = 'translate(0px, 0px) scale(1)';
+            targetMedia.style.opacity = '1';
+        }
+
+        /**
+         * 全局视频播放器音量记忆初始化函数
+         * @param {HTMLVideoElement} videoEl - 传入需要绑定的 video DOM 元素
+         */
+        function initVideoMemory(videoEl) {
+            if (!videoEl) return;
+
+            // 1. 从 localStorage 读取记忆的音量与静音状态
+            const savedVolume = localStorage.getItem('player_volume');
+            const savedMuted = localStorage.getItem('player_muted');
+
+            // 恢复音量（范围 0.0 ~ 1.0）
+            if (savedVolume !== null) {
+                videoEl.volume = parseFloat(savedVolume);
+            }
+            // 恢复静音状态（布尔值）
+            if (savedMuted !== null) {
+                videoEl.muted = (savedMuted === 'true');
+            }
+
+            // 2. 监听音量或静音状态发生变化，并持久化到 localStorage
+            // 使用 data 属性防止对同一 video 元素重复绑定事件
+            if (!videoEl.dataset.memoryInitialized) {
+                videoEl.addEventListener('volumechange', function() {
+                    localStorage.setItem('player_volume', videoEl.volume);
+                    localStorage.setItem('player_muted', videoEl.muted);
+                });
+                videoEl.dataset.memoryInitialized = 'true';
+            }
+        }
+
+        function copyNumber() {
+            const span = document.getElementById('detailNumber');
+            // 使用 innerText 获取纯文本（去除内部 <a> 标签等）
+            const numberText = span.innerText.trim();
+            if (!numberText) {
+                alert('没有可复制的番号');
+                return;
+            }
+
+            const btn = document.getElementById('copyNumberBtn');
+
+            navigator.clipboard.writeText(numberText).then(() => {
+                // 复制成功，临时改变按钮样式
+                btn.title = '已复制';
+            }).catch(() => {
+                // 降级方案：显示手动复制对话框
+                prompt('请手动复制以下番号：', numberText);
+            });
+        }
+
+        // 回到顶部按钮及页面常规初始化逻辑
+        document.addEventListener('DOMContentLoaded', function() {
+            // 【新增】自动为当前页面中静态存在的所以 <video> 标签应用记忆功能
+            document.querySelectorAll('video').forEach(video => {
+                initVideoMemory(video);
+            });
+        });
+
+        // 启动
+        loadDetail();
+        initQuickNav(); // <--- 新增这行，激活导航栏
+    </script>
+{% endblock %}

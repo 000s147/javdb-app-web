@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+
+{% block title %}收藏的清单 - JavDB{% endblock %}
+
+{% block styles %}
+    <style>
+        body { background-color: #f4f6f9; }
+        .page-header { background: #ffffff; border-radius: 16px; padding: 1.5rem 2rem; box-shadow: 0 4px 12px rgba(0,0,0,0.02); border: 1px solid rgba(0,0,0,0.04); }
+        .list-card { transition: all 0.25s cubic-bezier(0.4,0,0.2,1); border-radius: 14px; background-color: #ffffff; border: 1px solid rgba(0,0,0,0.06) !important; overflow: hidden; display: flex; flex-direction: column; height: 100%; }
+        .list-card:hover { transform: box-shadow: 0 12px 20px rgba(13,110,253,0.08) !important; border-color: rgba(13,110,253,0.25) !important; }
+        .list-card-link { display: block; text-decoration: none; color: inherit; padding: 1.25rem; flex-grow: 1; }
+        .list-card-link:hover { color: inherit; }
+        .icon-avatar { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 10px; font-size: 1.4rem; background: #e7f1ff; color: #0d6efd; transition: all 0.25s ease; }
+        .card-action-bar { background-color: #fafbfc; border-top: 1px solid rgba(0,0,0,0.05); padding: 0.5rem 1rem; display: flex; justify-content: flex-end; gap: 0.5rem; }
+        .action-btn { font-size: 0.825rem; padding: 0.35rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; border: 1px solid transparent; background: #fff; }
+        .btn-uncollect-flat { color: #dc3545; border-color: #f8d7da; }
+        .btn-uncollect-flat:hover { color: #dc3545; background-color: #fff; border-color: #dc3545; }
+        .pagination .page-link { border-radius: 8px; margin: 0 3px; border: 1px solid #dee2e6; color: #495057; }
+        .pagination .page-item.active .page-link { background-color: #0d6efd; border-color: #0d6efd; color: #fff; box-shadow: 0 4px 10px rgba(13,110,253,0.15); }
+        .toast-container { z-index: 1090; }
+
+        /* ========== 排序按钮组样式（与 list_home 统一） ========== */
+        .custom-radio-label {
+            border: 1px solid #dee2e6 !important;
+            background-color: #f8f9fa !important;
+            color: #212529 !important;
+            border-radius: 0.375rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+        }
+        .btn-check:not(:checked) + .custom-radio-label:hover {
+            background-color: #e9ecef !important;
+        }
+        .btn-check:checked + .custom-radio-label {
+            background-color: #0d6efd !important;
+            color: #fff !important;
+            border-color: #0d6efd !important;
+        }
+        .sort-group {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .sort-group .btn {
+            margin: 0;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+    <div>
+        <h1 class="h4 mb-1 fw-bold text-dark d-flex align-items-center gap-2">⭐ 收藏的清单</h1>
+        <p class="text-muted small mb-0">您收藏的所有公开清单，点击卡片可查看详情。</p>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+        <!-- 排序单选按钮组（按钮模式） -->
+        <div class="sort-group">
+            <span class="fw-bold text-muted small me-1">排序：</span>
+            <input type="radio" class="btn-check" name="sortRadio" id="sort_create" value="create" checked>
+            <label class="btn custom-radio-label btn-sm" for="sort_create">🕒 收藏时间倒序</label>
+            <input type="radio" class="btn-check" name="sortRadio" id="sort_update" value="update">
+            <label class="btn custom-radio-label btn-sm" for="sort_update">🔄 更新时间倒序</label>
+        </div>
+        <button class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1" style="min-width: 70px" onclick="loadLists(1)">🔄 刷新</button>
+    </div>
+</div>
+
+<div class="row" id="listsContainer">
+    <div class="col-12 text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2 text-muted small">加载中...</p>
+    </div>
+</div>
+
+<nav aria-label="Page navigation" class="mt-4 d-none" id="pagination">
+    <ul class="pagination justify-content-center mb-0" id="paginationList"></ul>
+</nav>
+
+<!-- ========== 精致的取消收藏模态框（与 my_lists 风格一致） ========== -->
+<div class="modal fade" id="uncollectModal" data-bs-backdrop="static" tabindex="-1" aria-labelledby="uncollectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-body text-center pt-4 pb-3">
+                <div class="text-danger fs-1 mb-2">⚠️</div>
+                <h6 class="fw-bold text-dark mb-2">确认取消收藏该清单吗？</h6>
+                <p class="text-muted small px-2 mb-0">您将移除此清单的收藏状态，但不会影响清单本身的内容。</p>
+                <input type="hidden" id="modalUncollectListId">
+            </div>
+            <div class="modal-footer border-top-0 justify-content-center pt-0 pb-3">
+                <button type="button" class="btn btn-light btn-sm px-3" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger btn-sm px-3" id="confirmUncollectBtn">确认取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentPage = 1;
+    const limit = 24;
+    let uncollectModalInstance = null;
+
+    function formatDate(isoString) {
+        const d = new Date(isoString);
+        const pad = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+
+    // ========== 打开取消收藏确认框（模态框） ==========
+    function openUncollectModal(listId) {
+        document.getElementById('modalUncollectListId').value = listId;
+        if (!uncollectModalInstance) {
+            uncollectModalInstance = new bootstrap.Modal(document.getElementById('uncollectModal'));
+        }
+        uncollectModalInstance.show();
+    }
+
+    // ========== 绑定模态框的“确认取消”按钮 ==========
+    document.getElementById('confirmUncollectBtn').addEventListener('click', async function() {
+        const listId = document.getElementById('modalUncollectListId').value;
+        const submitBtn = this;
+        const cancelBtn = document.querySelector('#uncollectModal .btn-light');
+
+        // 进入加载状态（防止重复点击）
+        submitBtn.disabled = true;
+        cancelBtn.disabled = true;
+        submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> 处理中...`;
+
+        try {
+            const res = await fetch(`/api/list/${listId}/collect`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'uncollect' })
+            });
+            const data = await res.json();
+            if (data.success) {
+                // 关闭模态框
+                uncollectModalInstance.hide();
+                // 刷新当前页
+                loadLists(currentPage);
+            } else {
+                alert(data.message || '取消收藏失败');
+                // 恢复按钮
+                submitBtn.disabled = false;
+                cancelBtn.disabled = false;
+                submitBtn.innerHTML = '确认取消';
+            }
+        } catch (e) {
+            alert('网络请求出错：' + e.message);
+            submitBtn.disabled = false;
+            cancelBtn.disabled = false;
+            submitBtn.innerHTML = '确认取消';
+        }
+    });
+
+    // ========== 加载收藏清单列表 ==========
+    async function loadLists(page) {
+        currentPage = page;
+        const container = document.getElementById('listsContainer');
+        const paginationEl = document.getElementById('pagination');
+        // 获取选中的排序值（单选按钮）
+        const sortRadio = document.querySelector('input[name="sortRadio"]:checked');
+        const sortBy = sortRadio ? sortRadio.value : 'create';
+
+        container.innerHTML = `
+            <div class="col-12 text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2 text-muted small">加载中...</p>
+            </div>
+        `;
+        paginationEl.classList.add('d-none');
+
+        try {
+            const res = await fetch(`/api/my/collected_lists?page=${page}&limit=${limit}&sort_by=${sortBy}`);
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message || '加载失败');
+
+            const lists = data.data.lists || [];
+            container.innerHTML = '';
+
+            if (lists.length === 0) {
+                container.innerHTML = `
+                    <div class="col-12 text-center text-muted py-5">
+                        <div class="fs-1 mb-2">📂</div>
+                        <h6 class="text-dark fw-bold">暂无收藏的清单</h6>
+                        <p class="small text-secondary mb-0">您可以在清单详情页中点击「收藏」按钮来收藏感兴趣的清单。</p>
+                    </div>
+                `;
+                return;
+            }
+
+            lists.forEach(list => {
+                container.innerHTML += `
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card list-card border-0 shadow-sm">
+                            <a href="/list/${list.id}" class="list-card-link" target="_blank">
+                                <div class="d-flex align-items-center">
+                                    <div class="icon-avatar me-3 shadow-sm flex-shrink-0">📂</div>
+                                    <div class="overflow-hidden">
+                                        <h6 class="card-title mb-1 fw-bold text-dark text-truncate d-flex align-items-center" title="${list.name}">
+                                            ${list.name}
+                                            ${list.is_default ? '<span class="badge bg-primary-subtle text-primary ms-2 px-2 py-1" style="font-size:0.7rem;">默认</span>' : ''}
+                                        </h6>
+                                        <div class="text-muted small text-truncate">
+                                            <span class="text-primary fw-bold">${list.movies_count}</span> 🎬 影片
+                                            <span class="mx-1 text-black-50">·</span>
+                                            <span>${list.views_count || 0}</span> 👁️ 浏览
+                                        </div>
+                                        <small class="text-muted d-block mt-1" style="font-size: 0.725rem;">🕒 ${formatDate(list.created_at)}</small>
+                                    </div>
+                                </div>
+                            </a>
+                            <div class="card-action-bar">
+                                <button class="action-btn btn-uncollect-flat" onclick="event.stopPropagation(); openUncollectModal('${list.id}')">
+                                    🗑️ 取消收藏
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            renderPagination(page, lists.length);
+
+        } catch (e) {
+            container.innerHTML = `
+                <div class="col-12 text-center text-danger py-5 small">
+                    ⚠️ 数据加载发生异常：${e.message}
+                    <div><button class="btn btn-primary mt-2" onclick="loadLists(${currentPage})">重试</button></div>
+                </div>
+            `;
+            document.getElementById('pagination').classList.add('d-none');
+        }
+    }
+
+    function renderPagination(page, loadedCount) {
+        const paginationUl = document.getElementById('paginationList');
+        paginationUl.innerHTML = '';
+
+        if (loadedCount === 0 && page === 1) {
+            document.getElementById('pagination').classList.add('d-none');
+            return;
+        }
+
+        const isLastPage = loadedCount < limit;
+        const prevDisabled = page <= 1 ? 'disabled' : '';
+
+        paginationUl.innerHTML += `
+            <li class="page-item ${prevDisabled}">
+                <a class="page-link" href="javascript:void(0)" onclick="if(${page} > 1) loadLists(${page - 1})">上一页</a>
+            </li>
+            <li class="page-item active"><span class="page-link">${page}</span></li>
+            <li class="page-item ${isLastPage ? 'disabled' : ''}">
+                <a class="page-link" href="javascript:void(0)" onclick="if(!${isLastPage}) loadLists(${page + 1})">下一页</a>
+            </li>
+        `;
+        document.getElementById('pagination').classList.remove('d-none');
+    }
+
+    // ========== 监听排序按钮变化，自动刷新 ==========
+    document.addEventListener('DOMContentLoaded', () => {
+        // 给所有排序 radio 绑定 change 事件，切换时刷新到第一页
+        document.querySelectorAll('input[name="sortRadio"]').forEach(el => {
+            el.addEventListener('change', function() {
+                if (this.checked) {
+                    loadLists(1);
+                }
+            });
+        });
+        // 初始加载
+        loadLists(1);
+    });
+</script>
+{% endblock %}

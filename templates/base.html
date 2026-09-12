@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}JavDB{% endblock %}</title>
+    <link href="{{ url_for('static', filename='images/favicon.ico') }}" rel="icon">
+    <!-- Bootstrap 5 CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-icons.min.css') }}">
+    <!-- 子模板可扩展样式 -->
+    {% block styles %}{% endblock %}
+    <style>
+        /* 公共基础样式 */
+        body { background: #f8f9fa; }
+        /* ===== 现代化顶部导航栏美化 ===== */
+        /* 1. 导航栏主体：毛玻璃吸顶效果 */
+        .navbar {
+            background: rgba(255, 255, 255, 0.85) !important; /* 半透明背景 */
+            backdrop-filter: blur(12px);                      /* 毛玻璃模糊效果 */
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;
+            transition: all 0.3s ease;
+        }
+
+        /* 2. Logo 美化：渐变色 + 悬停轻微放大 */
+        .navbar-brand {
+            font-weight: 800;
+            font-size: 1.4rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            transition: transform 0.3s ease, text-shadow 0.3s ease;
+            letter-spacing: 0.5px;
+        }
+        .navbar-brand:hover {
+            transform: scale(1.05);
+        }
+
+        /* 3. 导航项基础样式与间距 */
+        .navbar-nav .nav-item {
+            margin: 0 3px;
+        }
+
+        /* 4. 导航链接菜单：胶囊底色 + 悬停上浮动画 */
+        .navbar-nav .nav-link {
+            font-weight: 500;
+            color: #495057 !important;
+            padding: 6px 14px !important; /* 调整为更紧凑的胶囊形状 */
+            border-radius: 20px;          /* 胶囊圆角 */
+            transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            position: relative;
+        }
+        .navbar-nav .nav-link:hover {
+            color: #0d6efd !important;
+            background: rgba(13, 110, 253, 0.08); /* 极淡的蓝色背景 */
+            transform: translateY(-2px);          /* 轻微上浮 */
+        }
+
+        /* 5. 当前激活页面 (Active) 的显眼样式 - 浅色轻盈版 */
+        .navbar-nav .nav-link.active {
+            background: rgba(13, 110, 253, 0.12);  /* 极浅的半透明蓝色背景，不刺眼 */
+            box-shadow: none;                      /* 移除沉重的阴影 */
+        }
+        .navbar-nav .nav-link.active:hover {
+            transform: translateY(0);              /* 保持稳重，不需要上浮 */
+            background: rgba(13, 110, 253, 0.18);  /* 鼠标悬停时背景稍微加深一点点 */
+        }
+
+        /* 6. 下拉菜单 (Dropdown) 的悬浮优化与动画 */
+        .dropdown-menu {
+            border: none;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
+            padding: 8px;
+            animation: dropFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* 下拉菜单项：保持跟主导航一致的悬停手感 */
+        .dropdown-item {
+            border-radius: 8px;
+            font-weight: 500;
+            color: #495057;
+            transition: all 0.2s ease;
+            margin-bottom: 2px;
+        }
+        .dropdown-item:hover {
+            background: rgba(13, 110, 253, 0.08);
+            color: #0d6efd;
+            transform: translateX(4px); /* 悬停时文字向右轻推 */
+        }
+
+        /* 下拉动画 */
+        @keyframes dropFadeIn {
+            from { opacity: 0; transform: translateY(-10px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .card-link-block { display: block; text-decoration: none; color: inherit; }
+        .container {
+            max-width: 80%!important;
+        }
+        /* 其他全局样式 */
+        img { max-width: 100%; }
+        /* ===== 精致的回到顶部按钮 ===== */
+        #backToTop {
+            /* 固定定位 */
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 9999;
+
+            /* 尺寸与形状 */
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            border: none;
+
+            /* 渐变背景（青蓝→紫，可自行更换颜色） */
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+
+            /* 阴影 (带颜色渐变阴影更显高级) */
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+
+            /* 初始隐藏（透明度 + 位移 + 不可见） */
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(30px);
+
+            /* 过渡动画 */
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+            /* 内部居中 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            /* 防止点击穿透 */
+            cursor: pointer;
+        }
+
+        /* 显示状态 */
+        #backToTop.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        /* 悬停效果：上浮 + 阴影加深 */
+        #backToTop:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.6);
+        }
+
+        /* 点击按下效果 */
+        #backToTop:active {
+            transform: scale(0.92);
+        }
+
+        /* SVG 图标样式（适配按钮大小） */
+        #backToTop svg {
+            width: 24px;
+            height: 24px;
+            stroke: currentColor;
+            stroke-width: 2.5;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+		.page-link {
+			transition: none;
+		}
+
+        /* ===== 7. 下拉菜单悬停自动展开 (仅限桌面端) ===== */
+        @media (min-width: 992px) {
+            /* 1. 鼠标悬停时显示菜单 */
+            .navbar .dropdown:hover .dropdown-menu {
+                display: block;
+                animation: dropFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+
+            /* 2. 【核心修改】只要鼠标离开了整个包含块（按钮+面板），强行隐藏菜单，无视 Bootstrap 的点击锁定 */
+            .navbar .dropdown:not(:hover) .dropdown-menu {
+                display: none !important;
+            }
+
+            /* 调整菜单顶部外边距，消除鼠标移动时的间隙（防止鼠标还没移到菜单上菜单就消失） */
+            .navbar .dropdown-menu {
+                margin-top: 0;
+            }
+
+        }
+
+        /* 导航搜索栏 - 改用 flex 布局 */
+        .nav-search-wrapper {
+            background-color: rgba(240, 242, 245, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 50px;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            padding: 3px 4px;
+            display: flex;
+            align-items: stretch;
+            flex-wrap: nowrap;
+        }
+
+        /* 焦点状态外壳发光 */
+        .nav-search-wrapper:focus-within {
+            background-color: rgba(255, 255, 255, 0.98);
+            border-color: #86b7fe;
+            box-shadow: 0 4px 20px rgba(13, 110, 253, 0.15);
+            transform: translateY(-1px);
+        }
+
+        /* 自定义下拉按钮样式（替代原来的 select） */
+        .nav-search-select {
+            background-color: transparent !important;
+            border: none;
+            color: #495057;
+            font-weight: 500;
+            font-size: 0.9rem;
+            padding: 4px 12px 4px 16px;
+            border-radius: 50px 0 0 50px;
+            box-shadow: none !important;
+            white-space: nowrap;
+        }
+        .nav-search-select:hover {
+            color: #0d6efd;
+        }
+        .nav-search-select::after {
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+
+        /* 优雅的分割线 */
+        .nav-search-divider {
+            width: 1px;
+            background-color: rgba(0, 0, 0, 0.1);
+            margin: 6px 0;
+            align-self: center;
+            flex-shrink: 0;
+        }
+
+        /* 输入框去除全部边框和焦点环 */
+        .nav-search-input {
+            flex: 1 1 auto;
+            background: transparent !important;
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+            color: #212529;
+            font-size: 0.9rem;
+            padding: 0 8px;
+        }
+        .nav-search-input::placeholder {
+            color: #adb5bd;
+        }
+
+        /* 搜索按钮 */
+        .nav-search-btn {
+            background: transparent;
+            border: none;
+            color: #6c757d;
+            padding: 0 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .nav-search-btn:hover {
+            color: #0d6efd;
+            transform: scale(1.1);
+        }
+
+        /* 最后一个按钮（识图）右侧圆角 */
+        .nav-search-btn:last-child {
+            border-radius: 0 50px 50px 0;
+        }
+        /* 中间的按钮（搜索）无圆角 */
+        .nav-search-btn:not(:last-child) {
+            border-radius: 0;
+        }
+
+        /* ===== 核心改进：自定义下拉菜单面板 ===== */
+        .search-dropdown-menu {
+            border: none;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+            padding: 8px;
+            min-width: 130px;
+
+            /* 改为 0，消除鼠标移动时的断层 */
+            margin-top: 0 !important;
+
+            top: 100%;
+            left: 0;
+            animation: dropFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .search-dropdown-menu .dropdown-item {
+            border-radius: 8px;
+            padding: 5px 10px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #495057;
+            transition: all 0.2s ease;
+            margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .search-dropdown-menu .dropdown-item:hover,
+        .search-dropdown-menu .dropdown-item.active {
+            background-color: rgba(13, 110, 253, 0.08);
+            color: #0d6efd;
+            transform: translateX(4px);
+        }
+        .search-dropdown-menu .dropdown-item.active {
+            font-weight: 600;
+        }
+
+        .search-form {
+            min-width: 350px;
+        }
+    </style>
+</head>
+<body>
+    <!-- ===== 公共导航栏 ===== -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4 sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">🎬 JavDB</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+
+
+
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if request.path in ['/latest', '/top250', '/rankings', '/hot'] %}active{% endif %}"
+                           href="{{ url_for('rankings_page') }}"
+                           id="rankings"
+                           role="button"
+                           data-bs-toggle="dropdown"
+                           data-bs-display="static"
+                           aria-expanded="false"
+                           onclick="if(window.innerWidth >= 992){ window.location.href=this.href; }">
+                            🚀 排行榜
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="rankings">
+                            <li><a class="nav-link {% if request.path == '/latest' %}active{% endif %}" style="padding: 7px 10px !important;" href="{{ url_for('latest_page') }}">♻️ 最新上架</a></li>
+                            <li><a class="nav-link {% if request.path == '/top250' %}active{% endif %}" style="padding: 7px 10px !important;" href="{{ url_for('top250_page') }}">🏆 Top250</a></li>
+                            <li><a class="nav-link {% if request.path == '/hot' %}active{% endif %}" style="padding: 7px 10px !important;" href="{{ url_for('hot_page') }}">🔥 看热播</a></li>
+                        </ul>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/tags' %}active{% endif %}" href="{{ url_for('tag_search') }}">🏷️ 类别</a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/actors' %}active{% endif %}" href="{{ url_for('actors_page') }}">🎭 演员</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/series' %}active{% endif %}" href="{{ url_for('series_page_list') }}">📂 系列</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/makers' %}active{% endif %}" href="{{ url_for('makers_page') }}">🏢 片商</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/directors' %}active{% endif %}" href="{{ url_for('directors_page') }}">🎬 导演</a>
+                    </li>
+
+                    <!-- 其他 -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if request.path in ['/recommend_periods', '/articles', '/reviews', '/search', '/search_magnet'] %}active{% endif %}"
+                           href="javascript:void(0)" id="other" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            🛰️ 其他
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="other">
+                            <li><a class="nav-link {% if request.path == '/recommend_periods' %}active{% endif %}" style="padding: 7px 10px !important;" href="{{ url_for('recommend_periods_page') }}">📅 往期佳片</a></li>
+                            <li><a class="nav-link {% if request.path == '/articles' %}active{% endif %}" style="padding: 7px 10px !important;" href="{{ url_for('articles_page') }}">📰 AV资讯</a></li>
+                            <li><a class="nav-link {% if request.path == '/reviews' %}active{% endif %}" style="padding: 7px 10px !important;" href="{{ url_for('reviews_page') }}">💬 看短评</a></li>
+                            <li><a class="nav-link {% if request.path == '/search' %}active{% endif %}" style="padding: 7px 10px !important;" href="{{ url_for('search_page') }}">🔍 搜索</a></li>
+                            <li><a class="nav-link {% if request.path == '/search_magnet' %}active{% endif %}" style="padding: 7px 10px !important;" href="{{ url_for('search_magnet_page') }}">🧲 找磁链</a></li>
+                            <!-- <li><a class="nav-link {% if request.path == '/search_image' %}active{% endif %}" style="padding: 7px 10px !important;" href="{{ url_for('search_image') }}">🖼️ 识图</a></li> -->
+                        </ul>
+                    </li>
+
+                    <!-- ===== 新增“我的”下拉菜单 ===== -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if request.path in ['/profile', '/my_watchlist', '/my_watched', '/my_lists', '/my/collected_actors', '/my/collected_lists'] %}active{% endif %}"
+                        href="javascript:void(0)" id="myDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        👤 我的
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="myDropdown">
+                            <li><a class="nav-link {% if request.path == '/profile' %}active{% endif %}" style="padding: 7px 10px !important;" href="{{ url_for('profile_page') }}">👤 个人主页</a></li>
+                            <li><a class="nav-link {% if request.path == '/my_watchlist' %}active{% endif %}" style="padding: 7px 10px !important;" href="{{ url_for('my_watchlist_page') }}">❤️ 我的想看</a></li>
+                            <li><a class="nav-link {% if request.path == '/my_watched' %}active{% endif %}" style="padding: 7px 10px !important;" href="{{ url_for('my_watched_page') }}">✅ 我的看过</a></li>
+                            <li><a class="nav-link {% if request.path == '/my_lists' %}active{% endif %}" style="padding: 7px 10px !important;" href="{{ url_for('my_lists_page') }}">📁 我的清单</a></li>
+                            <li><a class="nav-link {% if request.path == '/my/collected_actors' %}active{% endif %}" style="padding: 7px 10px !important;" href="{{ url_for('my_collected_actors_page') }}">⭐ 收藏的演员</a></li>
+                            <li><a class="nav-link {% if request.path == '/my/collected_lists' %}active{% endif %}" style="padding: 7px 10px !important;" href="{{ url_for('my_collected_lists_page') }}">⭐ 收藏的清单</a></li>
+                            <li><a class="nav-link {% if request.path == '/my/collected_codes' %}active{% endif %}" style="padding: 7px 10px !important;" href="{{ url_for('my_collected_codes_page') }}">⭐ 收藏的番号</a></li>
+                            <li><a class="nav-link {% if request.path == '/my/collected_series' %}active{% endif %}" style="padding: 7px 10px !important;" href="{{ url_for('my_collected_series_page') }}">⭐ 收藏的系列</a></li>
+                            <li><a class="nav-link {% if request.path == '/my/collected_directors' %}active{% endif %}" style="padding: 7px 10px !important;" href="{{ url_for('my_collected_directors_page') }}">⭐ 收藏的导演</a></li>
+                            <li><a class="nav-link {% if request.path == '/my/collected_makers' %}active{% endif %}" style="padding: 7px 10px !important;" href="{{ url_for('my_collected_makers_page') }}">⭐ 收藏的片商</a></li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <!-- ============================== -->
+                <!-- 新增：现代化胶囊搜索栏 (带状态保持与美化) -->
+                <!-- ============================== -->
+                <form class="d-flex ms-lg-4 mt-3 mt-lg-0 search-form" id="navSearchForm" action="{{ url_for('search_page') }}" method="GET" onsubmit="return handleSearchSubmit(this)">
+                    {% set current_type = request.args.get('type', 'movie') %}
+
+                    <!-- 真实提交到后端的搜索类型字段 -->
+                    <input type="hidden" name="type" id="actualSearchType" value="{{ current_type }}">
+
+                    <div class="nav-search-wrapper input-group input-group-sm d-flex align-items-stretch">
+
+                        <!-- 彻底抛弃丑陋的原生 Select，改用 Bootstrap Dropdown -->
+                        <div class="dropdown d-flex align-items-center">
+                            <button class="btn nav-search-select dropdown-toggle d-flex align-items-center" type="button" id="searchTypeBtn" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
+                                <!-- 这里的内容会由 JS 初始化 -->
+                                <span id="searchTypeDisplay">🎬 影片</span>
+                            </button>
+
+                            <ul class="dropdown-menu search-dropdown-menu" aria-labelledby="searchTypeBtn">
+                                <li><a class="dropdown-item" href="#" data-val="movie">🎬 影片</a></li>
+                                <li><a class="dropdown-item" href="#" data-val="actor">🌟 演员</a></li>
+                                <li><a class="dropdown-item" href="#" data-val="code">🏷️ 番号</a></li>
+                                <li><a class="dropdown-item" href="#" data-val="list">📋 清单</a></li>
+                                <li><a class="dropdown-item" href="#" data-val="series">📂 系列</a></li>
+                                <li><a class="dropdown-item" href="#" data-val="maker">🏢 片商</a></li>
+                                <li><a class="dropdown-item" href="#" data-val="director">🎬 导演</a></li>
+                                <li><a class="dropdown-item" href="#" data-val="magnet">🧲 磁链</a></li>
+                            </ul>
+                        </div>
+
+                        <div class="nav-search-divider"></div>
+
+                        <input class="form-control nav-search-input" type="search" name="q"
+                               value="{{ request.args.get('q', '') }}"
+                               placeholder="输入关键词..." aria-label="Search" required autocomplete="off">
+
+                        <button class="nav-search-btn" type="submit" title="搜索">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                            </svg>
+                        </button>
+
+                        <!-- 🆕 识图按钮（触发模态框） -->
+                        <button class="nav-search-btn" type="button" data-bs-toggle="modal" data-bs-target="#imageSearchModal" title="以图识图">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+                                <path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </form>
+
+                <script>
+                    // 提取为全局函数，方便子页面调用进行同步
+                    window.updateNavbarSearch = function(keyword, typeVal) {
+                        // 1. 同步输入框的关键词
+                        const navInput = document.querySelector('.nav-search-input');
+                        if (navInput && keyword !== undefined) {
+                            navInput.value = keyword;
+                        }
+
+                        // 2. 同步下拉菜单的状态
+                        if (typeVal) {
+                            const hiddenInput = document.getElementById('actualSearchType');
+                            const displaySpan = document.getElementById('searchTypeDisplay');
+                            const dropdownItems = document.querySelectorAll('.search-dropdown-menu .dropdown-item');
+
+                            if (hiddenInput) hiddenInput.value = typeVal;
+
+                            dropdownItems.forEach(item => {
+                                if (item.getAttribute('data-val') === typeVal) {
+                                    item.classList.add('active');
+                                    if (displaySpan) displaySpan.innerHTML = item.innerHTML;
+                                } else {
+                                    item.classList.remove('active');
+                                }
+                            });
+                        }
+                    };
+
+                    document.addEventListener("DOMContentLoaded", function() {
+                        // 初始化当前选中的状态（读取初始 URL 参数或隐藏 input 的值）
+                        const hiddenInput = document.getElementById('actualSearchType');
+                        window.updateNavbarSearch(undefined, hiddenInput ? hiddenInput.value : 'movie');
+
+                        // 监听下拉菜单点击事件
+                        const dropdownItems = document.querySelectorAll('.search-dropdown-menu .dropdown-item');
+                        dropdownItems.forEach(item => {
+                            item.addEventListener('click', function(e) {
+                                e.preventDefault();
+                                const selectedVal = this.getAttribute('data-val');
+                                window.updateNavbarSearch(undefined, selectedVal);
+
+                                // 点击后强制隐藏菜单 (之前的修复代码)
+                                const toggleBtn = document.getElementById('searchTypeBtn');
+                                const menu = this.closest('.dropdown-menu');
+
+                                if (toggleBtn && typeof bootstrap !== 'undefined') {
+                                    let bsDropdown = bootstrap.Dropdown.getInstance(toggleBtn);
+                                    if (bsDropdown) bsDropdown.hide();
+                                }
+                                if (menu) {
+                                    menu.style.display = 'none';
+                                    setTimeout(() => { menu.style.display = ''; }, 200);
+                                }
+
+                                // ✅ 新增：让搜索框获得焦点
+                                const input = document.querySelector('.nav-search-input');
+                                if (input) input.focus();
+                            });
+                        });
+                    });
+
+                    // 拦截表单提交，处理路由分发
+                    function handleSearchSubmit(form) {
+                        var typeVal = document.getElementById('actualSearchType').value;
+                        if (typeVal === 'magnet') {
+                            form.action = "{{ url_for('search_magnet_page') }}";
+                        } else {
+                            form.action = "{{ url_for('search_page') }}";
+                        }
+                        return true;
+                    }
+                </script>
+                <!-- ============================== -->
+
+            </div>
+        </div>
+    </nav>
+
+    <!-- ===== 页面主要内容容器 ===== -->
+    <div class="container py-3">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- 回到顶部按钮（升级版） -->
+    <button id="backToTop" aria-label="回到顶部">
+        <svg viewBox="0 0 24 24">
+            <path d="M12 19V5" />
+            <polyline points="5 12 12 5 19 12" />
+        </svg>
+    </button>
+
+    <!-- ===== 以图识图模态框 ===== -->
+    <div class="modal fade" id="imageSearchModal" tabindex="-1" aria-labelledby="imageSearchModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="imageSearchModalLabel">🖼️ 以图识图</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <iframe src="{{ url_for('search_image') }}" style="width:100%; height:80vh; border:none;"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS (用于响应式菜单) -->
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+
+    <!-- ===== 公共 JavaScript 工具 ===== -->
+    <script>
+        // 回到顶部按钮逻辑
+        document.addEventListener('DOMContentLoaded', function() {
+            const backToTopBtn = document.getElementById('backToTop');
+            if (!backToTopBtn) return;
+
+            // 监听滚动事件（使用 passive 提高性能）
+            window.addEventListener('scroll', function() {
+                // 滚动超过 200px 显示，否则隐藏
+                if (window.scrollY > 200) {
+                    backToTopBtn.classList.add('visible');
+                } else {
+                    backToTopBtn.classList.remove('visible');
+                }
+            }, { passive: true });
+
+            // 点击平滑回到顶部
+            backToTopBtn.addEventListener('click', function() {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        });
+    </script>
+
+    <!-- ===== 子模板脚本块（页面专属逻辑） ===== -->
+    {% block scripts %}{% endblock %}
+</body>
+</html>

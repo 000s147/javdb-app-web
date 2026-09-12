@@ -1,0 +1,423 @@
+{% extends "base.html" %}
+
+{% block title %}收藏的演员 - JavDB{% endblock %}
+
+{% block styles %}
+    <style>
+        /* 现代化分类标签 */
+        .btn-tab {
+            background-color: #f1f3f5 !important;
+            color: #495057 !important;
+            border: 1px solid transparent;
+            padding: 8px 20px;
+            border-radius: 30px !important;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.25s ease;
+        }
+        .btn-tab:hover {
+            background-color: #e9ecef !important;
+            color: #212529 !important;
+        }
+        .btn-tab.active {
+            background-color: #0d6efd !important;
+            color: #fff !important;
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3) !important;
+        }
+        /* 强制清除未激活标签的背景色和边框色 */
+        .btn-tab:not(.active) {
+            background-color: transparent !important;
+            border-color: transparent !important;
+            color: inherit; /* 保持文字原本颜色 */
+        }
+
+        /* 消除按钮点击后的焦点外发光和点击瞬间的默认样式 */
+        .btn-tab:focus,
+        .btn-tab:active {
+            box-shadow: none !important;
+            outline: none !important;
+        }
+
+        /* 演员卡片样式 */
+        .actor-card {
+            transition: all 0.2s ease;
+            border-radius: 12px;
+            border: 2px solid transparent !important; /* 为选中状态预留边框 */
+        }
+        .actor-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08) !important;
+        }
+        .actor-avatar {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border: 2px solid #fff;
+            transition: transform 0.2s;
+        }
+
+        /* 隐藏的复选框层 */
+        .card-checkbox-wrapper {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            z-index: 10;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s;
+        }
+        .card-checkbox-wrapper .form-check-input {
+            width: 1.4rem;
+            height: 1.4rem;
+            cursor: pointer;
+            pointer-events: none; /* 让点击事件穿透给外层的 a 标签，由 JS 接管 */
+        }
+
+        /* ========== 编辑模式下的特殊样式 ========== */
+        .edit-mode .actor-card:hover {
+            transform: none; /* 编辑模式下取消浮动动画 */
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
+        }
+        .edit-mode .card-checkbox-wrapper {
+            opacity: 1;
+            visibility: visible;
+        }
+        .edit-mode .actor-card.selected-card {
+            border-color: #dc3545 !important;
+            background-color: #fff5f5 !important;
+        }
+        .edit-mode .actor-card.selected-card .actor-avatar {
+            border-color: #dc3545;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <h3 class="fw-bold mb-0">⭐ 收藏的演员</h3>
+
+    <div class="d-flex flex-wrap gap-2" id="typeTabs">
+        <button class="btn-tab active" data-type="all" onclick="switchType('all')">全部</button>
+        <button class="btn-tab" data-type="0" onclick="switchType('0')">🔞 有码</button>
+        <button class="btn-tab" data-type="1" onclick="switchType('1')">🔞 无码</button>
+        <button class="btn-tab" data-type="2" onclick="switchType('2')">🌍 欧美</button>
+    </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3 p-3 bg-white rounded shadow-sm border">
+    <div class="text-muted small" id="totalCountDisplay">加载中...</div>
+
+    <div>
+        <button id="btnEnterEdit" class="btn btn-outline-primary btn-sm rounded-pill px-4" onclick="toggleEditMode()">
+            ✏️ 批量编辑
+        </button>
+
+        <div id="batchActions" class="d-none align-items-center gap-3">
+            <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" style="cursor: pointer;">
+                <label class="form-check-label fw-semibold user-select-none" for="selectAll" style="cursor: pointer;">全选</label>
+            </div>
+            <button class="btn btn-danger btn-sm rounded-pill px-4 shadow-sm" id="btnBatchDelete" onclick="openBatchUncollectModal()" disabled>
+                🗑️ 删除 (<span id="selectCount">0</span>)
+            </button>
+            <button class="btn btn-light btn-sm rounded-pill border px-4 shadow-sm" onclick="toggleEditMode()">
+                取消
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row" id="favoritesContainer">
+    <div class="col-12 text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2 text-muted small">加载中...</p>
+    </div>
+</div>
+
+<nav aria-label="Page navigation" class="mt-5 d-none" id="pagination">
+    <ul class="pagination justify-content-center mb-0" id="paginationList">
+        </ul>
+</nav>
+
+<!-- 批量取消收藏确认模态框 -->
+<div class="modal fade" id="batchUncollectModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-body text-center pt-4 pb-3">
+                <div class="text-danger fs-1 mb-2">⚠️</div>
+                <h6 class="fw-bold text-dark mb-2">确认批量取消收藏吗？</h6>
+                <p class="text-muted small px-2 mb-0">即将移出 <span id="batchCountDisplay">0</span> 位演员的收藏状态，此操作不可撤销！</p>
+            </div>
+            <div class="modal-footer border-top-0 justify-content-center pt-0 pb-3">
+                <button type="button" class="btn btn-light btn-sm px-3" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger btn-sm px-3" id="confirmBatchUncollectBtn">确认取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentType = 'all';
+    let currentPageNum = 1;
+    const limit = 30;
+
+    let isEditMode = false; // 控制是否处于批量编辑模式
+
+    async function loadFavorites(page) {
+        currentPageNum = page;
+        const container = document.getElementById('favoritesContainer');
+        const paginationEl = document.getElementById('pagination');
+        const totalCountEl = document.getElementById('totalCountDisplay');
+
+        // 每次重新加载时，强制退出编辑模式，确保状态重置
+        if (isEditMode) toggleEditMode();
+
+        container.innerHTML = `
+            <div class="col-12 text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2 text-muted small">加载中...</p>
+            </div>
+        `;
+        paginationEl.classList.add('d-none');
+        totalCountEl.innerText = '加载中...';
+
+        try {
+            const res = await fetch(`/api/my/collected_actors?type=${currentType}&page=${page}&limit=${limit}`);
+            const data = await res.json();
+
+            if (data.success) {
+                const actors = data.data.actors || [];
+                if (actors.length === 0) {
+                    container.innerHTML = '<div class="col-12 text-center text-muted py-5">该分类下暂无收藏的演员 ╮(╯▽╰)╭</div>';
+                    totalCountEl.innerText = '共 0 位演员';
+                    return;
+                }
+
+                totalCountEl.innerText = `第 ${page} 页，当前展示 ${actors.length} 位演员`;
+
+                let html = '';
+                actors.forEach(actor => {
+                    const gender = actor.gender || 0;
+                    const noAvatarImg = gender === 1 ? `{{ url_for('static', filename='images/male-avatar.jpg') }}` : `{{ url_for('static', filename='images/female-avatar.jpg') }}`;
+
+                    const avatar = actor.avatar_url ? `/api/image_proxy?url=${encodeURIComponent(actor.avatar_url)}` : noAvatarImg;
+                    const detailUrl = `/actor/${actor.id}`;
+
+                    let typeBadge = '';
+                    if (actor.type === 0) typeBadge = '<span class="badge bg-secondary-subtle text-secondary small">有码</span>';
+                    else if (actor.type === 1) typeBadge = '<span class="badge bg-dark-subtle text-dark small">无码</span>';
+                    else if (actor.type === 2) typeBadge = '<span class="badge bg-primary-subtle text-primary small">欧美</span>';
+                    else if (actor.type === 3) typeBadge = '<span class="badge bg-warning-subtle text-dark small">FC2</span>';
+
+                    html += `
+                        <div class="col-xl-2 col-md-6 mb-4">
+                            <a href="${detailUrl}" target="_blank" class="text-decoration-none text-dark d-block" onclick="handleCardClick(event, '${actor.id}')">
+                                <div class="card h-100 shadow-sm text-center p-3 actor-card bg-white" id="card_${actor.id}">
+                                    <div class="card-checkbox-wrapper">
+                                        <input class="form-check-input actor-checkbox" type="checkbox" value="${actor.id}" id="cb_${actor.id}">
+                                    </div>
+                                    <div class="mb-2">
+                                        <img src="${avatar}" onerror="this.src='${noAvatarImg}'" class="rounded-circle actor-avatar shadow-sm">
+                                    </div>
+                                    <h6 class="text-truncate fw-bold mb-1 px-1" title="${actor.name}">${actor.name}</h6>
+                                    <div class="mb-2">${typeBadge}</div>
+                                    <span class="badge bg-light text-muted border px-2 py-1 rounded-pill small">📽️ ${actor.videos_count} 作品</span>
+                                </div>
+                            </a>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+                renderPagination(page, actors.length);
+                paginationEl.classList.remove('d-none');
+            } else {
+                container.innerHTML = `
+                    <div class="col-12 text-center text-danger py-5">
+                        加载数据失败: ${data.message}
+                        <div><button class="btn btn-primary mt-2" onclick="loadFavorites(${currentPageNum})">重试</button></div>
+                    </div>
+                `;
+                totalCountEl.innerText = '加载失败';
+            }
+        } catch (e) {
+            container.innerHTML = `
+                <div class="col-12 text-center text-danger py-5">
+                    网络交互错误: ${e.message}
+                    <div><button class="btn btn-primary mt-2" onclick="loadFavorites(${currentPageNum})">重试</button></div>
+                </div>
+            `;
+            totalCountEl.innerText = '网络错误';
+        }
+    }
+
+    // 分类切换
+    function switchType(type) {
+        currentType = type;
+        document.querySelectorAll('#typeTabs .btn-tab').forEach(btn => {
+            if (btn.getAttribute('data-type') === type) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+        loadFavorites(1);
+    }
+
+    // ================= 编辑模式与交互逻辑 =================
+
+    function toggleEditMode() {
+        isEditMode = !isEditMode;
+        const container = document.getElementById('favoritesContainer');
+        const btnEnter = document.getElementById('btnEnterEdit');
+        const batchActions = document.getElementById('batchActions');
+
+        if (isEditMode) {
+            // 进入编辑模式
+            container.classList.add('edit-mode');
+            btnEnter.classList.add('d-none');
+            batchActions.classList.remove('d-none');
+            batchActions.classList.add('d-flex');
+        } else {
+            // 退出编辑模式，清理所有选中状态
+            container.classList.remove('edit-mode');
+            btnEnter.classList.remove('d-none');
+            batchActions.classList.add('d-none');
+            batchActions.classList.remove('d-flex');
+
+            document.getElementById('selectAll').checked = false;
+            document.querySelectorAll('.actor-checkbox').forEach(cb => cb.checked = false);
+            document.querySelectorAll('.actor-card').forEach(card => card.classList.remove('selected-card'));
+            updateBatchButton();
+        }
+    }
+
+    // 处理卡片点击（核心体验优化）
+    function handleCardClick(event, actorId) {
+        if (!isEditMode) {
+            return; // 正常模式，允许 A 标签的默认新标签页跳转
+        }
+
+        // 处于编辑模式，拦截跳转行为，改为选中逻辑
+        event.preventDefault();
+
+        const cb = document.getElementById(`cb_${actorId}`);
+        const card = document.getElementById(`card_${actorId}`);
+
+        cb.checked = !cb.checked; // 切换复选框状态
+
+        if (cb.checked) {
+            card.classList.add('selected-card');
+        } else {
+            card.classList.remove('selected-card');
+        }
+
+        updateBatchButton();
+    }
+
+    function toggleSelectAll(masterCb) {
+        const isChecked = masterCb.checked;
+        document.querySelectorAll('.actor-checkbox').forEach(cb => {
+            cb.checked = isChecked;
+            // 同步卡片 UI
+            const card = document.getElementById(`card_${cb.value}`);
+            if (isChecked) card.classList.add('selected-card');
+            else card.classList.remove('selected-card');
+        });
+        updateBatchButton();
+    }
+
+    function updateBatchButton() {
+        const checkedBoxes = document.querySelectorAll('.actor-checkbox:checked');
+        const count = checkedBoxes.length;
+        const btn = document.getElementById('btnBatchDelete');
+        document.getElementById('selectCount').innerText = count;
+        btn.disabled = count === 0;
+
+        const allBoxes = document.querySelectorAll('.actor-checkbox');
+        if (allBoxes.length > 0) {
+            document.getElementById('selectAll').checked = (count === allBoxes.length);
+        }
+    }
+
+    // 原 batchUncollect 函数替换为以下内容
+    function openBatchUncollectModal() {
+        const checkedBoxes = document.querySelectorAll('.actor-checkbox:checked');
+        const ids = Array.from(checkedBoxes).map(cb => cb.value);
+        if (ids.length === 0) return;
+
+        document.getElementById('batchCountDisplay').innerText = ids.length;
+        document.getElementById('confirmBatchUncollectBtn').dataset.ids = JSON.stringify(ids);
+        new bootstrap.Modal(document.getElementById('batchUncollectModal')).show();
+    }
+
+    // ================= 分页逻辑 =================
+
+    function renderPagination(currentPage, loadedCount) {
+        const paginationUl = document.getElementById('paginationList');
+        paginationUl.innerHTML = '';
+
+        const isLastPage = loadedCount < limit;
+        const prevDisabled = currentPage <= 1 ? 'disabled' : '';
+        paginationUl.innerHTML += `
+            <li class="page-item ${prevDisabled}">
+                <a class="page-link text-dark" href="javascript:void(0)" onclick="if(${currentPage} > 1) loadFavorites(${currentPage - 1})">上一页</a>
+            </li>
+        `;
+
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = isLastPage ? currentPage : currentPage + 2;
+
+        for (let i = startPage; i <= endPage; i++) {
+            if (i === currentPage) {
+                paginationUl.innerHTML += `<li class="page-item active"><span class="page-link border-0 shadow-sm">${i}</span></li>`;
+            } else {
+                paginationUl.innerHTML += `<li class="page-item"><a class="page-link text-dark" href="javascript:void(0)" onclick="loadFavorites(${i})">${i}</a></li>`;
+            }
+        }
+
+        const nextDisabled = isLastPage ? 'disabled' : '';
+        paginationUl.innerHTML += `
+            <li class="page-item ${nextDisabled}">
+                <a class="page-link text-dark" href="javascript:void(0)" onclick="if(!${isLastPage}) loadFavorites(${currentPage + 1})">下一页</a>
+            </li>
+        `;
+    }
+
+    window.onload = function() {
+        loadFavorites(1);
+    };
+
+    document.getElementById('confirmBatchUncollectBtn').addEventListener('click', async function() {
+        const ids = JSON.parse(this.dataset.ids || '[]');
+        if (ids.length === 0) return;
+
+        const btn = this;
+        const cancelBtn = document.querySelector('#batchUncollectModal .btn-light');
+        btn.disabled = true;
+        cancelBtn.disabled = true;
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> 处理中...`;
+
+        try {
+            const res = await fetch('/api/my/collected_actors/batch_uncollect', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids })
+            });
+            const data = await res.json();
+            if (data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('batchUncollectModal')).hide();
+                loadFavorites(currentPageNum); // 刷新列表
+            } else {
+                alert(data.message || '操作失败');
+                btn.disabled = false;
+                cancelBtn.disabled = false;
+                btn.innerHTML = '确认取消';
+            }
+        } catch (e) {
+            alert('网络请求出错：' + e.message);
+            btn.disabled = false;
+            cancelBtn.disabled = false;
+            btn.innerHTML = '确认取消';
+        }
+    });
+</script>
+{% endblock %}

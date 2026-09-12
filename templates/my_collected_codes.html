@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}收藏的番号 - JavDB{% endblock %}
+
+{% block styles %}
+    <style>
+        /* 借用你原有的基础美化样式 */
+        body { background-color: #f4f6f9; }
+        .page-header { background: #ffffff; border-radius: 16px; padding: 1.5rem 2rem; box-shadow: 0 4px 12px rgba(0,0,0,0.02); border: 1px solid rgba(0,0,0,0.04); }
+        .code-card { transition: all 0.25s; border-radius: 14px; background-color: #ffffff; border: 1px solid rgba(0,0,0,0.06); overflow: hidden; height: 100%; text-align: center;}
+        .code-card:hover { transform: translateY(-3px); box-shadow: 0 12px 20px rgba(13,110,253,0.08); border-color: rgba(13,110,253,0.25); }
+        .code-card-link { display: block; text-decoration: none; color: inherit; padding: 1.5rem; }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4 d-flex justify-content-between align-items-center">
+    <div>
+        <h1 class="h4 mb-1 fw-bold text-dark">⭐ 收藏的番号</h1>
+        <p class="text-muted small mb-0">您收藏的所有番号系列</p>
+    </div>
+    <button class="btn btn-outline-primary btn-sm" onclick="loadCodes(1)">🔄 刷新</button>
+</div>
+
+<div class="row" id="codesContainer">
+    <!-- 数据注入区 -->
+</div>
+
+<nav aria-label="Page navigation" class="mt-4 d-none" id="pagination">
+    <ul class="pagination justify-content-center mb-0" id="paginationList"></ul>
+</nav>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentPage = 1;
+    const limit = 30;
+
+    async function loadCodes(page) {
+        currentPage = page;
+        const container = document.getElementById('codesContainer');
+        const paginationEl = document.getElementById('pagination');
+
+        container.innerHTML = `<div class="col-12 text-center py-5"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted">加载中...</p></div>`;
+        paginationEl.classList.add('d-none');
+
+        try {
+            const res = await fetch(`/api/my/collected_codes?page=${page}&limit=${limit}`);
+            const data = await res.json();
+
+            if (!data.success) throw new Error(data.message || '加载失败');
+            // 注意：下面的 data.data.codes 字段名称需要以实际抓包返回的JSON字段名调整
+            const codes = data.data.codes || data.data.data || [];
+            container.innerHTML = '';
+
+            if (codes.length === 0) {
+                container.innerHTML = `<div class="col-12 text-center text-muted py-5">暂无收藏的番号</div>`;
+                return;
+            }
+
+            codes.forEach(item => {
+                const codeType = item.type || 0;
+                let codeTypeStr = '';
+                if (codeType === 0) {
+                    codeTypeStr = '有码';
+                } else if (codeType === 1) {
+                    codeTypeStr = '无码';
+                } else if (codeType === 2) {
+                    codeTypeStr = '欧美';
+                } else if (codeType === 3) {
+                    codeTypeStr = 'FC2';
+                } else if (codeType === 4) {
+                    codeTypeStr = '动漫';
+                }
+                // item.name 取决于后端返回值，这里以 item.name 代指番号名
+                container.innerHTML += `
+                    <div class="col-xl-3 col-md-4 col-sm-6 mb-4">
+                        <div class="card code-card">
+                            <a href="/code/${item.id || item.name}" class="code-card-link" target="_blank">
+                                <h4 class="fw-bold text-primary mb-2">${item.id || item.name}</h4>
+                                <span class="badge bg-light text-dark border">${codeTypeStr}</span>
+                                <span class="badge bg-light text-dark border">${item.videos_count || 0} 部影片</span>
+                            </a>
+                            <div class="card-footer bg-white border-0 py-2">
+                                <button class="btn btn-sm btn-outline-danger w-100" onclick="uncollectCode('${item.id || item.name}')">取消收藏</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            renderPagination(page, codes.length);
+        } catch (e) {
+            container.innerHTML = `<div class="col-12 text-center text-danger py-5">异常：${e.message}</div>`;
+        }
+    }
+
+    async function uncollectCode(codeId) {
+        if (!confirm('确认取消收藏该番号吗？')) return;
+        try {
+            const res = await fetch(`/api/code/${codeId}/collect`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'uncollect' })
+            });
+            const data = await res.json();
+            if (data.success) {
+                loadCodes(currentPage); // 刷新当前页
+            } else {
+                alert(data.message || '取消收藏失败');
+            }
+        } catch (e) {
+            alert('网络异常');
+        }
+    }
+
+    function renderPagination(page, loadedCount) {
+        const paginationUl = document.getElementById('paginationList');
+        paginationUl.innerHTML = '';
+        if (loadedCount === 0 && page === 1) return;
+
+        const isLastPage = loadedCount < limit;
+        paginationUl.innerHTML += `
+            <li class="page-item ${page <= 1 ? 'disabled' : ''}">
+                <a class="page-link" href="javascript:void(0)" onclick="loadCodes(${page - 1})">上一页</a>
+            </li>
+            <li class="page-item active"><span class="page-link">${page}</span></li>
+            <li class="page-item ${isLastPage ? 'disabled' : ''}">
+                <a class="page-link" href="javascript:void(0)" onclick="loadCodes(${page + 1})">下一页</a>
+            </li>
+        `;
+        document.getElementById('pagination').classList.remove('d-none');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => loadCodes(1));
+</script>
+{% endblock %}

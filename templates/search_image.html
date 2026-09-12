@@ -1,0 +1,425 @@
+{% extends "base.html" %}
+
+{% block title %}以图识图 - JavDB{% endblock %}
+
+{% block styles %}
+<style>
+    /* 与原始插件保持一致的样式 */
+    #upload-area {
+        border: 2px dashed #85af68;
+        border-radius: 8px;
+        padding: 40px;
+        text-align: center;
+        margin-bottom: 20px;
+        transition: all 0.3s;
+        background-color: #f9f9f9;
+    }
+    #upload-area:hover {
+        border-color: #76b947;
+        background-color: #f0f0f0;
+    }
+    #upload-area.highlight {
+        border-color: #2196F3;
+        background-color: #e3f2fd;
+    }
+    #select-image-btn {
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.3s;
+    }
+    #select-image-btn:hover {
+        background-color: #45a049;
+    }
+    #handle-btn, #cancel-btn {
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        border: none;
+        transition: opacity 0.3s;
+    }
+    #handle-btn {
+        background-color: #2196F3;
+        color: white;
+    }
+    #handle-btn:hover {
+        opacity: 0.9;
+    }
+    #cancel-btn {
+        background-color: #f44336;
+        color: white;
+    }
+    #cancel-btn:hover {
+        opacity: 0.9;
+    }
+    .search-img-site-btns-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 15px;
+    }
+    .search-img-site-btn {
+        display: flex;
+        align-items: center;
+        padding: 8px 12px;
+        background-color: #f5f5f5;
+        border-radius: 4px;
+        text-decoration: none;
+        color: #333;
+        transition: all 0.2s;
+        font-size: 14px;
+        border: 1px solid #ddd;
+    }
+    .search-img-site-btn:hover {
+        background-color: #e0e0e0;
+        transform: translateY(-2px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .search-img-site-btn img {
+        width: 16px;
+        height: 16px;
+        margin-right: 6px;
+    }
+    .search-img-site-btn span {
+        white-space: nowrap;
+    }
+    #preview-image {
+        max-width: 100%;
+        max-height: 300px;
+        border-radius: 4px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    #message {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 9999;
+        padding: 12px 24px;
+        border-radius: 4px;
+        font-weight: bold;
+        display: none;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+    #message.success { background: #4CAF50; color: white; }
+    #message.error   { background: #f44336; color: white; }
+    #message.info    { background: #2196F3; color: white; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2 class="mb-4 text-center">🖼️ 以图识图</h2>
+
+<!-- 消息提示 -->
+<div id="message"></div>
+
+<!-- 上传区域 -->
+<div id="upload-area">
+    <div style="color: #555; margin-bottom: 15px;">
+        <p>拖拽图片到此处 或 点击按钮选择图片</p>
+        <p>也可以直接 Ctrl+V 粘贴图片或 图片URL</p>
+    </div>
+    <button id="select-image-btn" class="btn btn-success">选择图片</button>
+    <input type="file" style="display: none" id="image-file" accept="image/*">
+</div>
+
+<!-- URL 输入区（粘贴图片 URL 时显示） -->
+<div id="url-input-container" style="margin-top: 15px; display: none;">
+    <input type="text" id="image-url" placeholder="粘贴图片URL地址..." class="form-control">
+</div>
+
+<!-- 预览区 -->
+<div id="preview-area" style="margin-bottom: 20px; text-align: center; display: none;">
+    <img id="preview-image" alt="" src="">
+    <div style="margin-top: 15px; display: flex; justify-content: center; gap: 10px;" id="action-btns">
+        <button id="handle-btn" class="btn btn-primary">搜索图片</button>
+        <button id="cancel-btn" class="btn btn-danger">取消</button>
+    </div>
+
+    <div id="search-results" style="display: none;">
+        <p style="margin: 20px auto;">
+            请选择识图网站：
+            <a id="openAll" style="cursor: pointer; color: #0d6efd;">全部打开</a>
+        </p>
+        <div class="search-img-site-btns-container" id="search-img-site-btns-container"></div>
+    </div>
+</div>
+
+<!-- 加载指示（隐藏） -->
+<div id="loadingIndicator" style="display: none; text-align: center; margin-top: 20px;">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="mt-2 text-muted">正在上传图片，请稍候...</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- 引入 jQuery（原脚本依赖） -->
+<script src="{{ url_for('static', filename='js/jquery-3.7.1.min.js') }}" crossorigin="anonymous"></script>
+
+<script>
+    (function() {
+        // 如果页面在 iframe 中，隐藏导航栏，并调整内容边距
+        if (window.self !== window.top) {
+            // 隐藏导航栏
+            const navbar = document.querySelector('.navbar');
+            if (navbar) navbar.style.display = 'none';
+
+            // 调整内容区域的上边距（移除导航栏占位）
+            const container = document.querySelector('.container');
+            if (container) {
+                container.style.paddingTop = '0';
+                container.style.marginTop = '0';
+            }
+
+            // 让上传区域更紧凑（可选）
+            const uploadArea = document.getElementById('upload-area');
+            if (uploadArea) uploadArea.style.padding = '20px';
+        }
+    })();
+</script>
+<script>
+$(function() {
+    // ========== 站点列表 ==========
+    const siteList = [
+        {
+            name: "Google",
+            url: "https://lens.google.com/uploadbyurl?url={占位符}",
+            ico: "https://www.google.com/favicon.ico"
+        },
+        {
+            name: "Yandex",
+            url: "https://yandex.ru/images/search?rpt=imageview&url={占位符}",
+            ico: "https://yandex.ru/favicon.ico"
+        }
+    ];
+
+    // ========== 工具函数 ==========
+    function isUrl(string) {
+        try {
+            new URL(string);
+            return true;
+        } catch (_) {
+            return false;
+        }
+    }
+
+    function showMessage(text, type = 'info') {
+        const $msg = $('#message');
+        $msg.text(text)
+            .removeClass('success error info')
+            .addClass(type)
+            .fadeIn(200);
+        // 3秒后自动隐藏
+        clearTimeout(window.msgTimer);
+        window.msgTimer = setTimeout(() => {
+            $msg.fadeOut(300);
+        }, 3000);
+    }
+
+    // ========== 核心功能 ==========
+    let isUploading = false;
+
+    function resetSearchUI() {
+        $('#action-btns').show();
+        $('#search-results').hide();
+        $('#search-img-site-btns-container').empty();
+    }
+
+    function handleImageFile(file) {
+        if (!file.type.match('image.*')) {
+            showMessage('请选择图片文件', 'error');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            $('#preview-image').attr('src', e.target.result);
+            $('#preview-area').show();
+            $('#url-input-container').hide();
+            resetSearchUI();
+            // 自动触发搜索
+            $('#handle-btn').click();
+        };
+        reader.readAsDataURL(file);
+    }
+
+    async function searchByImage(imageSrc) {
+        let imageUrl = imageSrc;
+        // 如果是 base64，上传到 imgur
+        if (imageSrc.startsWith('data:')) {
+            showMessage('正在上传图片到 imgur...', 'info');
+            $('#loadingIndicator').show();
+            try {
+                // 解析 base64
+                const matches = imageSrc.match(/^data:(.+);base64,(.+)$/);
+                if (!matches || matches.length < 3) {
+                    throw new Error('无效的Base64图片数据');
+                }
+                const mimeType = matches[1];
+                const imageData = matches[2];
+                const byteCharacters = atob(imageData);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], { type: mimeType });
+                const formData = new FormData();
+                formData.append('image', blob);
+
+                const response = await fetch('https://api.imgur.com/3/image', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Client-ID d70305e7c3ac5c6'
+                    },
+                    body: formData
+                });
+                const data = await response.json();
+                if (!data.success || !data.data || !data.data.link) {
+                    throw new Error(data.data?.error || '上传到Imgur失败');
+                }
+                imageUrl = data.data.link;
+                showMessage('上传成功，图片链接：' + imageUrl, 'success');
+            } catch (e) {
+                showMessage('上传失败：' + e.message, 'error');
+                throw e;
+            } finally {
+                $('#loadingIndicator').hide();
+            }
+        }
+        return imageUrl;
+    }
+
+    // ========== 事件绑定 ==========
+    // 1. 上传区域拖拽
+    const $uploadArea = $('#upload-area');
+    $uploadArea.on('dragover', function(e) {
+        e.preventDefault();
+        $(this).addClass('highlight');
+    }).on('dragleave', function() {
+        $(this).removeClass('highlight');
+    }).on('drop', function(e) {
+        e.preventDefault();
+        $(this).removeClass('highlight');
+        const files = e.originalEvent.dataTransfer.files;
+        if (files && files[0]) {
+            handleImageFile(files[0]);
+        }
+    });
+
+    // 2. 选择按钮
+    $('#select-image-btn').on('click', function() {
+        $('#image-file').click();
+    });
+    $('#image-file').on('change', function(e) {
+        if (this.files && this.files[0]) {
+            handleImageFile(this.files[0]);
+            resetSearchUI();
+        }
+    });
+
+    // 3. 粘贴（图片或URL）
+    $(document).on('paste', function(e) {
+        const items = e.originalEvent.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                const blob = items[i].getAsFile();
+                handleImageFile(blob);
+                resetSearchUI();
+                return;
+            }
+        }
+        const text = e.originalEvent.clipboardData.getData('text');
+        if (text && isUrl(text)) {
+            $('#url-input-container').show();
+            $('#image-url').val(text);
+            $('#preview-image').attr('src', text);
+            $('#preview-area').show();
+            resetSearchUI();
+        }
+    });
+
+    // 4. URL 输入框变化
+    $('#image-url').on('change', function() {
+        const val = $(this).val();
+        if (isUrl(val)) {
+            $('#preview-image').attr('src', val);
+            $('#preview-area').show();
+            resetSearchUI();
+        }
+    });
+
+    // 5. 搜索按钮
+    $('#handle-btn').on('click', async function() {
+        const imageSrc = $('#preview-image').attr('src');
+        if (!imageSrc) {
+            showMessage('请先上传或粘贴图片', 'error');
+            return;
+        }
+        if (isUploading) return;
+        isUploading = true;
+        $('#handle-btn').prop('disabled', true);
+        try {
+            const imgUrl = await searchByImage(imageSrc);
+            // 生成站点链接
+            $('#action-btns').hide();
+            $('#search-results').show();
+            const $container = $('#search-img-site-btns-container');
+            $container.empty();
+
+            const key = 'jhs_selectedSites';
+            let selectedSites = JSON.parse(localStorage.getItem(key) || '{}');
+
+            siteList.forEach(site => {
+                const siteUrl = site.url.replace('{占位符}', encodeURIComponent(imgUrl));
+                const isChecked = selectedSites[site.name] !== false;
+                $container.append(`
+                    <a href="${siteUrl}" class="search-img-site-btn" target="_blank" title="${site.name}">
+                        <input type="checkbox" class="site-checkbox" data-site-name="${site.name}" ${isChecked ? 'checked' : ''} style="margin-right: 5px;">
+                        <img src="${site.ico}" alt="${site.name}">
+                        <span>${site.name}</span>
+                    </a>
+                `);
+            });
+
+            // 监听 checkbox 变化保存偏好
+            $container.on('change', '.site-checkbox', function() {
+                const siteName = $(this).data('site-name');
+                selectedSites[siteName] = $(this).is(':checked');
+                localStorage.setItem(key, JSON.stringify(selectedSites));
+            });
+
+        } catch (e) {
+            // 错误已在 searchByImage 中提示
+        } finally {
+            isUploading = false;
+            $('#handle-btn').prop('disabled', false);
+        }
+    });
+
+    // 6. 取消按钮
+    $('#cancel-btn').on('click', function() {
+        $('#preview-area').hide();
+        $('#url-input-container').hide();
+        $('#image-file').val('');
+        $('#image-url').val('');
+        $('#search-results').hide();
+        $('#action-btns').show();
+        $('#preview-image').attr('src', '');
+    });
+
+    // 7. 全部打开
+    $('#openAll').on('click', function() {
+        $('.search-img-site-btn').each(function() {
+            if ($(this).find('.site-checkbox').is(':checked')) {
+                window.open($(this).attr('href'), '_blank');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

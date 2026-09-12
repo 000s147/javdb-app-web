@@ -1,0 +1,376 @@
+{% extends "base.html" %}
+
+{% block title %}加载中...{% endblock %}
+
+{% block styles %}
+    <style>
+        .movie-card { transition: transform 0.2s; }
+        .movie-card:hover { transform: scale(1.02); }
+        .movie-card img { width: 100%; height: 220px; object-fit: cover; }
+        .filter-section {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
+        }
+        /* 番号信息胶囊标签 */
+        #codeCount {
+            display: inline-flex;
+            align-items: center;
+            background: #f1f3f5;
+            padding: 4px 14px 4px 12px;
+            border-radius: 30px;
+            border: 1px solid #e9ecef;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            font-weight: 500;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+        }
+        #codeCount .icon {
+            margin-right: 6px;
+            font-size: 1.1rem;
+            line-height: 1;
+        }
+
+        /* ===== 排序按钮样式（与演员主页保持一致） ===== */
+        .custom-radio-label {
+            border: 1px solid #dee2e6 !important;
+            background-color: #f8f9fa !important;
+            color: #212529 !important;
+            border-radius: 0.375rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .btn-check:not(:checked) + .custom-radio-label:hover {
+            background-color: #e9ecef !important;
+        }
+        .btn-check:checked + .custom-radio-label {
+            background-color: #0d6efd !important;
+            color: #fff !important;
+            border-color: #0d6efd !important;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div id="mainView">
+
+        <div id="codeProfile" class="card mb-3 d-none shadow-sm">
+            <div class="card-body text-center py-4">
+                <h2 class="mb-2 fw-bold text-primary" id="codeName"></h2>
+                <span class="badge bg-secondary fs-6" id="codeCount"></span>
+                <div class="text-muted d-flex justify-content-start">
+                    <button id="collectBtn" class="btn btn-outline-danger btn-sm rounded-pill shadow-sm" style="padding-left: 14px; padding-right: 14px; margin-right: 8px; font-size: 0.85rem;" onclick="toggleCollect()">
+                        <span id="collectIcon">⭐</span> <span id="collectText">收藏</span>
+                    </button>
+                </div>
+                <!-- 新增错误信息容器（默认隐藏） -->
+                <div id="codeInfoError" class="text-danger mt-2" style="display:none;"></div>
+            </div>
+        </div>
+
+        <!-- ===== 筛选 + 排序区域（已改造） ===== -->
+        <div class="filter-section border shadow-sm mb-4">
+            <!-- 第一行：筛选 + 刷新按钮 -->
+            <div class="row align-items-center">
+                <div class="col-md-10 mb-2 d-flex flex-wrap gap-2 align-items-center">
+                    <span class="fw-bold text-muted small">筛选：</span>
+                    <input type="radio" class="btn-check filter-btn" name="filterBy" id="f_all" value="" checked>
+                    <label class="btn custom-radio-label btn-sm" for="f_all">全部</label>
+
+                    <input type="radio" class="btn-check filter-btn" name="filterBy" id="f_p" value="p">
+                    <label class="btn custom-radio-label btn-sm" for="f_p">可播放</label>
+
+                    <input type="radio" class="btn-check filter-btn" name="filterBy" id="f_m" value="m">
+                    <label class="btn custom-radio-label btn-sm" for="f_m">含磁链</label>
+
+                    <input type="radio" class="btn-check filter-btn" name="filterBy" id="f_c" value="c">
+                    <label class="btn custom-radio-label btn-sm" for="f_c">含字幕</label>
+                </div>
+                <div class="col-md-2 text-end">
+                    <button class="btn btn-primary btn-sm w-100" style="border-radius: 0.375rem;" onclick="loadMovies(1)">刷新数据</button>
+                </div>
+            </div>
+
+            <!-- 第二行：排序按钮组（单选，与筛选互不干扰） -->
+            <div class="row mt-2">
+                <div class="col-12 d-flex flex-wrap align-items-center gap-2">
+                    <span class="fw-bold text-muted small" style="white-space: nowrap;">排序：</span>
+
+                    <input type="radio" class="btn-check sort-radio" name="sortOption" id="sort_digit_desc" value="digit|desc" checked>
+                    <label class="btn custom-radio-label btn-sm" for="sort_digit_desc">番号倒序</label>
+
+                    <input type="radio" class="btn-check sort-radio" name="sortOption" id="sort_release_desc" value="release|desc">
+                    <label class="btn custom-radio-label btn-sm" for="sort_release_desc">发布时间倒序</label>
+
+                    <input type="radio" class="btn-check sort-radio" name="sortOption" id="sort_release_asc" value="release|asc">
+                    <label class="btn custom-radio-label btn-sm" for="sort_release_asc">发布时间正序</label>
+
+                    <input type="radio" class="btn-check sort-radio" name="sortOption" id="sort_score" value="score|asc">
+                    <label class="btn custom-radio-label btn-sm" for="sort_score">评分倒序</label>
+
+                    <input type="radio" class="btn-check sort-radio" name="sortOption" id="sort_hit" value="hit|asc">
+                    <label class="btn custom-radio-label btn-sm" for="sort_hit">热度倒序</label>
+
+                    <input type="radio" class="btn-check sort-radio" name="sortOption" id="sort_want" value="want_watch_count|asc">
+                    <label class="btn custom-radio-label btn-sm" for="sort_want">想看人数倒序</label>
+
+                    <input type="radio" class="btn-check sort-radio" name="sortOption" id="sort_watched" value="watched_count|asc">
+                    <label class="btn custom-radio-label btn-sm" for="sort_watched">看过人数倒序</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- 影片列表 -->
+        <div class="row" id="moviesContainerLoading"></div>
+        <div class="row" id="moviesContainer"></div>
+
+        <nav aria-label="Page navigation" class="mt-4 d-none" id="pagination">
+            <ul class="pagination justify-content-center mb-0" id="paginationList"></ul>
+        </nav>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        const initialCodeId = '{{ code_id }}';
+        let currentPageNum = 1;
+        let isCollected = false; // 初始状态，最好在加载番号基本信息时更新此变量 (例如 if data.is_collected)
+
+        // 加载基础信息
+        async function loadCodeInfo() {
+            const profileDiv = document.getElementById('codeProfile');
+            const nameEl = document.getElementById('codeName');
+            const countEl = document.getElementById('codeCount');
+            const errorEl = document.getElementById('codeInfoError');
+
+            try {
+                const res = await fetch(`/api/code/${initialCodeId}`);
+                const data = await res.json();
+
+                if (data.success && data.data && data.data.code) {
+                    const code = data.data.code;
+                    const hasCollected = data.data.has_collected || false
+                    nameEl.innerText = code.name;
+                    countEl.innerHTML = `<span class="icon">📋</span>共收录 ${code.videos_count} 部作品`;
+                    countEl.style.display = '';  // 恢复显示
+                    document.title = `${code.name} - 系列 - JavDB`;
+                    profileDiv.classList.remove('d-none');
+                    // 隐藏错误信息
+                    errorEl.style.display = 'none';
+                    errorEl.innerHTML = '';
+
+                    updateBtnUI(hasCollected)
+                } else {
+                    throw new Error(data.message || '获取番号信息失败');
+                }
+            } catch (e) {
+                console.error("无法加载番号基础信息", e);
+                profileDiv.classList.remove('d-none');
+
+                // 1. 显示错误信息，按钮居中
+                errorEl.style.display = 'block';
+                errorEl.innerHTML = `
+                    <div class="text-center">
+                        加载番号信息失败：${e.message}<br>
+                        <button class="btn btn-outline-primary btn-sm mt-2" onclick="loadCodeInfo()">重试</button>
+                    </div>
+                `;
+
+                // 2. 隐藏灰色块（把 count 隐藏掉）
+                countEl.style.display = 'none';
+                nameEl.innerText = '';
+            }
+        }
+
+        // 加载影片列表
+        async function loadMovies(page, scrollToTop = false) {
+            currentPageNum = page;
+
+            const filterBy = document.querySelector('.filter-btn:checked').value;
+            // ===== 从排序 radio 组获取选中的值 =====
+            const sortRadio = document.querySelector('.sort-radio:checked');
+            const sortValue = sortRadio ? sortRadio.value : 'digit|desc';
+            const [sortBy, orderBy] = sortValue.split('|');
+
+            const params = new URLSearchParams({
+                code_id: initialCodeId,
+                filter_by: filterBy,
+                sort_by: sortBy,
+                order_by: orderBy,
+                page: page,
+                limit: 24
+            });
+
+            const containerLD = document.getElementById('moviesContainerLoading');
+            const container = document.getElementById('moviesContainer');
+            containerLD.innerHTML = '<div class="col-12 text-center py-5"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted">加载中...</p></div>';
+            containerLD.classList.remove('d-none');
+            document.getElementById('pagination').classList.add('d-none');
+
+            if (scrollToTop) {
+                document.getElementById('moviesContainerLoading').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            try {
+                const res = await fetch(`/api/code-movies?${params.toString()}`);
+                const data = await res.json();
+
+                if (!data.success) throw new Error(data.error || '请求失败');
+
+                const movies = data.data.movies || [];
+                container.innerHTML = '';
+
+                if (movies.length === 0) {
+                    document.title = '番号 - 系列 - JavDB';
+                    container.innerHTML = '<div class="col-12 text-center text-muted py-5">该条件下暂无收录作品</div>';
+                    fadeOut(containerLD);
+                    return;
+                }
+
+                movies.forEach(movie => {
+                    const coverFixed = `/api/image_proxy?url=${encodeURIComponent(movie.cover_url)}`;
+                    const detailUrl = `/movie/${movie.id}`;
+
+                    container.innerHTML += `
+                        <div class="col-md-3 mb-4">
+                            <div class="card movie-card h-100 shadow-sm border-0">
+                                <a href="${detailUrl}" class="card-link-block" target="_blank">
+                                    <div class="position-relative">
+                                        <img src="${coverFixed}" alt="${movie.number}" onerror="this.src='{{ url_for('static', filename='images/noimage.jpg') }}'">
+                                        <div class="position-absolute top-0 end-0 d-flex gap-1 m-2">
+                                            ${ movie.new_magnets ? '<span class="badge bg-warning text-dark">新种</span>' : (movie.magnets_count > 0 ? '<span class="badge" style="background-color: #32ad76 !important;">含磁链</span>' : '') }
+                                            ${ movie.has_cnsub ? '<span class="badge bg-info">中字</span>' : '' }
+                                        </div>
+                                    </div>
+                                    <div class="card-body p-3">
+                                        <h6 class="card-title text-truncate fw-bold" title="${movie.number}">${movie.number}</h6>
+                                        <p class="card-text small text-muted mb-2" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.5; height: 3.0em;" title="${movie.title}">${movie.title}</p>
+                                        <div class="d-flex justify-content-between mt-2">
+                                            <span class="badge bg-light text-dark border">${ movie.release_date ? movie.release_date : '' }</span>
+                                            <span class="badge bg-light text-dark border">${ movie.duration ? movie.duration+' 分钟' : '' }</span>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                renderPagination(page, movies.length);
+                document.getElementById('pagination').classList.remove('d-none');
+
+            } catch (err) {
+                // ----- 增加重试按钮 -----
+                container.innerHTML = `
+                    <div class="col-12 text-center text-danger py-5">
+                        加载失败：${err.message}
+                        <div><button class="btn btn-primary mt-2" onclick="loadMovies(${currentPageNum}, true)">重试</button></div>
+                    </div>
+                `;
+            }
+            document.title = initialCodeId + ' - 系列 - JavDB';
+            fadeOut(containerLD);
+        }
+
+        // 分页渲染（保持不变）
+        function renderPagination(currentPage, loadedCount) {
+            const limit = 24;
+            const paginationUl = document.getElementById('paginationList');
+            paginationUl.innerHTML = '';
+
+            const isLastPage = loadedCount < limit;
+            const prevDisabled = currentPage <= 1 ? 'disabled' : '';
+
+            paginationUl.innerHTML += `<li class="page-item ${prevDisabled}"><a class="page-link" href="javascript:void(0)" onclick="if(${currentPage} > 1) loadMovies(${currentPage - 1}, true)">上一页</a></li>`;
+
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = isLastPage ? currentPage : currentPage + 2;
+
+            for (let i = startPage; i <= endPage; i++) {
+                if (i === currentPage) {
+                    paginationUl.innerHTML += `<li class="page-item active" aria-current="page"><span class="page-link">${i}</span></li>`;
+                } else {
+                    paginationUl.innerHTML += `<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="loadMovies(${i}, true)">${i}</a></li>`;
+                }
+            }
+
+            const nextDisabled = isLastPage ? 'disabled' : '';
+            paginationUl.innerHTML += `<li class="page-item ${nextDisabled}"><a class="page-link" href="javascript:void(0)" onclick="if(!${isLastPage}) loadMovies(${currentPage + 1}, true)">下一页</a></li>`;
+            paginationUl.innerHTML += `
+                <li class="page-item ms-3 d-flex align-items-center">
+                    <input type="number" id="jumpPageInput" class="form-control text-center px-1" style="width: 60px; height: 38px;" value="${currentPage + 1}" min="1">
+                    <button class="btn btn-outline-primary ms-1" style="height: 38px;" onclick="jumpToPage()">跳转</button>
+                </li>
+            `;
+        }
+
+        function jumpToPage() {
+            const inputVal = document.getElementById('jumpPageInput').value;
+            const page = parseInt(inputVal, 10);
+            if (page && page > 0) loadMovies(page, true);
+        }
+
+        function fadeOut(element, duration = 1000) {
+            if (!element) return;
+            element.style.transition = `opacity ${duration}ms ease`;
+            element.style.opacity = '0';
+            setTimeout(() => {
+                element.classList.add('d-none');
+                element.style.opacity = '';
+                element.style.transition = '';
+            }, duration);
+        }
+
+        // 如果你在页面加载时获取了番号数据，可以用获取到的状态更新：
+        function updateBtnUI(collected) {
+            isCollected = collected;
+            const btn = document.getElementById('collectBtn');
+            document.getElementById('collectText').innerText = collected ? '已收藏' : '收藏';
+            btn.className = collected ? 'btn btn-danger' : 'btn btn-outline-danger';
+        }
+
+        async function toggleCollect() {
+            const action = isCollected ? 'uncollect' : 'collect';
+            const btn = document.getElementById('collectBtn');
+            btn.disabled = true; // 防抖，防止连点
+
+            try {
+                const res = await fetch(`/api/code/${initialCodeId}/collect`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: action })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    isCollected = !isCollected;
+                    // 更新UI
+                    document.getElementById('collectText').innerText = isCollected ? '已收藏' : '收藏';
+                    btn.className = isCollected ? 'btn btn-danger' : 'btn btn-outline-danger';
+                } else {
+                    alert('操作失败：' + (data.message || '未知错误'));
+                }
+            } catch (e) {
+                alert('网络请求出错：' + e.message);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // 初始化
+        window.onload = function() {
+            // 筛选 radio 变化 → 刷新
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.addEventListener('change', () => loadMovies(1)));
+
+            // ===== 排序 radio 变化 → 刷新 =====
+            document.querySelectorAll('.sort-radio').forEach(radio => radio.addEventListener('change', () => loadMovies(1)));
+
+            if (initialCodeId) {
+                loadCodeInfo();
+                loadMovies(1);
+            }
+        };
+    </script>
+{% endblock %}

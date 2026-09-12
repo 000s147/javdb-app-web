@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block title %}个人资料 - JavDB{% endblock %}
+
+{% block styles %}
+    <style>
+        /* 与现有页面风格一致 */
+        .profile-card {
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid rgba(0,0,0,0.06);
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+            margin-bottom: 20px;
+        }
+        .profile-avatar-placeholder {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            color: #6c757d;
+            margin-right: 20px;
+            flex-shrink: 0;
+        }
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-top: 12px;
+        }
+        .stat-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 16px 12px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #0d6efd;
+        }
+        .stat-label {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-top: 4px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #f1f3f5;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            color: #6c757d;
+            font-weight: 500;
+        }
+        .info-value {
+            font-weight: 500;
+            color: #212529;
+        }
+        .vip-badge {
+            background: linear-gradient(135deg, #f7971e, #ffd200);
+            color: #000;
+            font-weight: 600;
+            padding: 4px 14px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            display: inline-block;
+        }
+        .danger-hint {
+            font-size: 0.8rem;
+            color: #dc3545;
+            margin-top: 2px;
+        }
+        .loading-placeholder {
+            text-align: center;
+            padding: 60px 0;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- 加载中 -->
+    <div id="loadingIndicator" class="loading-placeholder">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2 text-muted">加载中...</p>
+    </div>
+
+    <!-- 错误提示 -->
+    <div id="errorMessage" class="alert alert-danger d-none" role="alert"></div>
+
+    <!-- 主内容 -->
+    <div id="profileContent" class="d-none">
+        <div class="row g-4">
+            <!-- 左侧：用户基本信息 -->
+            <div class="col-md-4">
+                <div class="profile-card">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="profile-avatar-placeholder">
+                            <img src="{{ url_for('static', filename='images/noavatar.jpg') }}" class="rounded-circle me-4 shadow-sm" style="width: 80px; height: 80px; margin-left: 27px; object-fit: cover;">
+
+                        </div>
+                        <div>
+                            <h4 id="username" class="fw-bold mb-0"></h4>
+                            <span id="vipBadge" class="vip-badge d-none">⭐ VIP</span>
+                            <span id="normalBadge" class="badge bg-secondary d-none">普通用户</span>
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">电子邮箱</span>
+                        <span id="email" class="info-value"></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">用户 ID</span>
+                        <span id="userId" class="info-value"></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">推广码</span>
+                        <span id="promoCode" class="info-value"></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">推广人数</span>
+                        <span id="promoteCount" class="info-value"></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">推广天数</span>
+                        <span id="promoteDays" class="info-value"></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">签到天数</span>
+                        <span id="checkinDays" class="info-value"></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">上次签到</span>
+                        <span id="lastCheckin" class="info-value"></span>
+                    </div>
+                    <div class="mt-3">
+                        <a id="shareLink" href="#" target="_blank" class="btn btn-outline-primary btn-sm w-100">📤 分享链接</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：统计和附加信息 -->
+            <div class="col-md-8">
+                <!-- 统计卡片 -->
+                <div class="profile-card">
+                    <h6 class="fw-bold mb-3">📊 观影统计</h6>
+                    <div class="stat-grid">
+                        <div class="stat-item">
+                            <div class="stat-number" id="wantCount">0</div>
+                            <div class="stat-label">❤️ 想看</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="watchedCount">0</div>
+                            <div class="stat-label">✅ 看过</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 附加信息 -->
+                <div class="profile-card">
+                    <h6 class="fw-bold mb-3">📋 个人资料</h6>
+                    <div class="info-row">
+                        <span class="info-label">短评被举报次数</span>
+                        <span id="reportsCount" class="info-value">0</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">短评被删次数</span>
+                        <span id="deletedCommentsCount" class="info-value">0</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">禁言次数 <br><span class="danger-hint">禁言次数超过最大次数后被禁用账号</span></span>
+                        <span id="mutedInfo" class="info-value">0 / 0</span>
+                    </div>
+
+                    <div class="info-row">
+                        <span class="info-label">待审核/已通过订正数 <br><span class="danger-hint">订正功能来自网页版影片详情页</span></span>
+                        <span id="correctionInfo" class="info-value">0 / 0</span>
+                    </div>
+                </div>
+
+                <!-- VIP 过期时间 -->
+                <div id="vipExpiry" class="profile-card d-none">
+                    <span class="text-muted">VIP 有效期至：</span>
+                    <strong id="vipExpiryDate"></strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // 加载个人资料
+    async function loadProfile() {
+        const loading = document.getElementById('loadingIndicator');
+        const error = document.getElementById('errorMessage');
+        const content = document.getElementById('profileContent');
+
+        try {
+            // 并行请求两个接口
+            const [userRes, additionalRes] = await Promise.all([
+                fetch('/api/v1/users'),
+                fetch('/api/v1/users/additional')
+            ]);
+
+            if (!userRes.ok) throw new Error('获取用户信息失败');
+            if (!additionalRes.ok) throw new Error('获取附加信息失败');
+
+            const userData = await userRes.json();
+            const additionalData = await additionalRes.json();
+
+            if (!userData.success) throw new Error(userData.message || '用户信息错误');
+            if (!additionalData.success) throw new Error(additionalData.message || '附加信息错误');
+
+            const user = userData.data.user;
+            const additional = additionalData.data;
+
+            // 填充基本信息
+            document.getElementById('username').textContent = user.username || '未登录';
+            document.getElementById('email').textContent = user.email || '-';
+            document.getElementById('userId').textContent = user.id || '-';
+            document.getElementById('promoCode').textContent = user.promotion_code || '-';
+            document.getElementById('promoteCount').textContent = user.promote_users_count || 0;
+            document.getElementById('promoteDays').textContent = user.promotion_days || 0;
+            document.getElementById('checkinDays').textContent = user.checkin_days || 0;
+            document.getElementById('lastCheckin').textContent = user.last_checkin_at || '未签到';
+            document.getElementById('shareLink').href = user.share_url || '#';
+
+            // VIP 状态
+            const vipBadge = document.getElementById('vipBadge');
+            const normalBadge = document.getElementById('normalBadge');
+            if (user.is_vip) {
+                vipBadge.classList.remove('d-none');
+                normalBadge.classList.add('d-none');
+            } else {
+                vipBadge.classList.add('d-none');
+                normalBadge.classList.remove('d-none');
+            }
+
+            // 统计
+            document.getElementById('wantCount').textContent = user.want_watch_count || 0;
+            document.getElementById('watchedCount').textContent = user.watched_count || 0;
+
+            // 附加信息
+            document.getElementById('reportsCount').textContent = additional.reports_count || 0;
+            document.getElementById('deletedCommentsCount').textContent = additional.deleted_comments_count || 0;
+            document.getElementById('mutedInfo').textContent = `${additional.muted_count || 0} / ${additional.max_muted_count || 0}`;
+            document.getElementById('correctionInfo').textContent = `${additional.uncorrected_count || 0} / ${additional.corrections_count || 0}`;
+
+            // VIP 过期时间
+            if (user.vip_expired_at) {
+                document.getElementById('vipExpiry').classList.remove('d-none');
+                document.getElementById('vipExpiryDate').textContent = user.vip_expired_at;
+            } else {
+                document.getElementById('vipExpiry').classList.add('d-none');
+            }
+
+            // 隐藏加载，显示内容
+            loading.classList.add('d-none');
+            content.classList.remove('d-none');
+        } catch (e) {
+            loading.classList.add('d-none');
+            error.classList.remove('d-none');
+            error.textContent = '加载失败：' + e.message;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadProfile);
+</script>
+{% endblock %}

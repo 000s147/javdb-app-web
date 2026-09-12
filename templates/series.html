@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+
+{% block title %}系列 - JavDB{% endblock %}
+
+{% block styles %}
+    <style>
+        .movie-card { transition: transform 0.2s; }
+        .movie-card:hover { transform: scale(1.02); }
+        .tab-content { margin-top: 20px; }
+        .card-body h3, .card-body h5 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .card-style {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+        .nav-link:hover {
+            transition: none !important;
+        }
+        /* 彻底清除导航选项卡切换时的闪烁、焦点残留和过渡动画 */
+        .nav-tabs .nav-link {
+            transition: none !important; /* 禁用所有属性的动画 */
+        }
+
+        /* 强制清除未激活标签的背景色和边框色 */
+        .nav-tabs .nav-link:not(.active) {
+            background-color: transparent !important;
+            border-color: transparent !important;
+            color: inherit; /* 保持文字原本颜色 */
+        }
+
+        /* 消除按钮点击后的焦点外发光和点击瞬间的默认样式 */
+        .nav-tabs .nav-link:focus,
+        .nav-tabs .nav-link:active {
+            box-shadow: none !important;
+            outline: none !important;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4 text-center">📂 系列</h1>
+
+    <!-- 1. 新增选项卡 (增加了 动漫 系列) -->
+    <ul class="nav nav-tabs" id="seriesTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'letters' %}active{% endif %}" id="tab-letters" data-bs-toggle="tab" data-bs-target="#panel-letters" type="button" role="tab">🏷️ 番号</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'censored' %}active{% endif %}" id="tab-censored" data-bs-toggle="tab" data-bs-target="#panel-censored" type="button" role="tab">🎬 有码</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'uncensored' %}active{% endif %}" id="tab-uncensored" data-bs-toggle="tab" data-bs-target="#panel-uncensored" type="button" role="tab">🔥 无码</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'western' %}active{% endif %}" id="tab-western" data-bs-toggle="tab" data-bs-target="#panel-western" type="button" role="tab">👱‍♀️ 欧美</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'anime' %}active{% endif %}" id="tab-anime" data-bs-toggle="tab" data-bs-target="#panel-anime" type="button" role="tab">🌸 动漫</button>
+        </li>
+    </ul>
+
+    <!-- 2. 内容面板 -->
+    <div class="tab-content" id="seriesTabContent">
+        <!-- 番号面板 -->
+        <div class="tab-pane fade show {% if active_tab == 'letters' %}active{% endif %}" id="panel-letters" role="tabpanel">
+            <div class="row mt-2" id="lettersContainer"></div>
+            <nav aria-label="Page navigation" class="mt-4 d-none" id="lettersPagination">
+                <ul class="pagination justify-content-center mb-0" id="lettersPaginationList"></ul>
+            </nav>
+        </div>
+
+        <!-- 有码面板 -->
+        <div class="tab-pane fade show {% if active_tab == 'censored' %}active{% endif %}" id="panel-censored" role="tabpanel">
+            <div class="row mt-2" id="censoredContainer"></div>
+            <nav aria-label="Page navigation" class="mt-4 d-none" id="censoredPagination">
+                <ul class="pagination justify-content-center mb-0" id="censoredPaginationList"></ul>
+            </nav>
+        </div>
+
+        <!-- 无码面板 -->
+        <div class="tab-pane fade show {% if active_tab == 'uncensored' %}active{% endif %}" id="panel-uncensored" role="tabpanel">
+            <div class="row mt-2" id="uncensoredContainer"></div>
+            <nav aria-label="Page navigation" class="mt-4 d-none" id="uncensoredPagination">
+                <ul class="pagination justify-content-center mb-0" id="uncensoredPaginationList"></ul>
+            </nav>
+        </div>
+
+        <!-- 欧美面板 -->
+        <div class="tab-pane fade show {% if active_tab == 'western' %}active{% endif %}" id="panel-western" role="tabpanel">
+            <div class="row mt-2" id="westernContainer"></div>
+            <nav aria-label="Page navigation" class="mt-4 d-none" id="westernPagination">
+                <ul class="pagination justify-content-center mb-0" id="westernPaginationList"></ul>
+            </nav>
+        </div>
+
+        <!-- 动漫面板 -->
+        <div class="tab-pane fade show {% if active_tab == 'anime' %}active{% endif %}" id="panel-anime" role="tabpanel">
+            <div class="row mt-2" id="animeContainer"></div>
+            <nav aria-label="Page navigation" class="mt-4 d-none" id="animePagination">
+                <ul class="pagination justify-content-center mb-0" id="animePaginationList"></ul>
+            </nav>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        // ========== 渲染卡片工具 ==========
+        function renderLettersCards(letters) {
+            const container = document.getElementById('lettersContainer');
+            container.innerHTML = '';
+            if (!letters || letters.length === 0) {
+                container.innerHTML = '<div class="col-12 text-center text-muted py-5">未找到番号系列</div>';
+                return;
+            }
+            letters.forEach(item => {
+                const detailUrl = `/code/${item.id}`;
+                container.innerHTML += `
+                    <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                        <div class="card h-100 movie-card shadow-sm border-0 card-style">
+                            <a href="${detailUrl}" class="card-link-block h-100 d-flex flex-column justify-content-center align-items-center py-4 text-decoration-none" target="_blank">
+                                <div class="card-body text-center w-100">
+                                    <h3 class="card-title fw-bold text-primary mb-2">${item.letter}</h3>
+                                    <p class="text-muted small px-2" style="height: 40px; overflow: hidden;" title="${item.description || ''}">${item.description || '暂无描述'}</p>
+                                    <span class="badge bg-white text-dark border shadow-sm">${item.videos_count} 部作品</span>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // 渲染通用系列卡片
+        function renderSeriesCards(series, containerId, emptyText) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            if (!series || series.length === 0) {
+                container.innerHTML = `<div class="col-12 text-center text-muted py-5">${emptyText}</div>`;
+                return;
+            }
+            series.forEach(item => {
+                const detailUrl = `/series/${item.id}`;
+                // 根据需要可以给不同的系列配不同的背景色
+                let bgStyle = 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)'; // 默认蓝色系
+                if(containerId === 'animeContainer') bgStyle = 'linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%)'; // 动漫使用粉色系
+
+                container.innerHTML += `
+                    <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                        <div class="card h-100 movie-card shadow-sm border-0" style="background: ${bgStyle};">
+                            <a href="${detailUrl}" class="card-link-block h-100 d-flex flex-column justify-content-center align-items-center py-4 text-decoration-none" target="_blank">
+                                <div class="card-body text-center w-100">
+                                    <h5 class="card-title fw-bold text-dark mb-3" title="${item.name}">${item.name}</h5>
+                                    <span class="badge bg-light text-dark border shadow-sm">📁 ${item.videos_count} 部作品</span>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // ========== 分页工具 ==========
+        function renderPagination(currentPage, loadedCount, paginationId, loadFunc) {
+            const limit = 24;
+            const paginationUl = document.getElementById(paginationId + 'List');
+            paginationUl.innerHTML = '';
+
+            const isLastPage = loadedCount < limit;
+            const prevDisabled = currentPage <= 1 ? 'disabled' : '';
+
+            paginationUl.innerHTML += `
+                <li class="page-item ${prevDisabled}">
+                    <a class="page-link" href="javascript:void(0)" onclick="if(${currentPage} > 1) ${loadFunc}(${currentPage - 1}, true)">上一页</a>
+                </li>
+            `;
+
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = isLastPage ? currentPage : currentPage + 2;
+
+            for (let i = startPage; i <= endPage; i++) {
+                if (i === currentPage) {
+                    paginationUl.innerHTML += `<li class="page-item active"><span class="page-link">${i}</span></li>`;
+                } else {
+                    paginationUl.innerHTML += `<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="${loadFunc}(${i}, true)">${i}</a></li>`;
+                }
+            }
+
+            const nextDisabled = isLastPage ? 'disabled' : '';
+            paginationUl.innerHTML += `
+                <li class="page-item ${nextDisabled}">
+                    <a class="page-link" href="javascript:void(0)" onclick="if(!${isLastPage}) ${loadFunc}(${currentPage + 1}, true)">下一页</a>
+                </li>
+            `;
+
+            paginationUl.innerHTML += `
+                <li class="page-item ms-3 d-flex align-items-center">
+                    <input type="number" class="jumpPageInput form-control text-center px-1" style="width: 60px; height: 38px;" value="${currentPage + 1}" min="1">
+                    <button class="btn btn-outline-primary ms-1" style="height: 38px;" onclick="jumpToPage('${paginationId}', '${loadFunc}')">跳转</button>
+                </li>
+            `;
+
+            document.getElementById(paginationId).classList.remove('d-none');
+        }
+
+        function jumpToPage(paginationId, loadFunc) {
+            const input = document.querySelector(`#${paginationId} .jumpPageInput`);
+            const val = input.value;
+            const p = parseInt(val, 10);
+            if (p && p > 0) {
+                const fn = eval(loadFunc);
+                if (typeof fn === 'function') fn(p, true);
+            }
+        }
+
+        // ========== 数据加载 ==========
+        async function loadLetters(page, scrollToTop = false) {
+            const container = document.getElementById('lettersContainer');
+            const paginationEl = document.getElementById('lettersPagination');
+            container.innerHTML = `<div class="col-12 text-center py-5"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted">加载中...</p></div>`;
+            paginationEl.classList.add('d-none');
+
+            try {
+                const res = await fetch(`/api/series/letters?page=${page}&limit=24`);
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || '加载失败');
+
+                const letters = data.data.letters || [];
+                renderLettersCards(letters);
+
+                if (letters.length > 0) {
+                    renderPagination(page, letters.length, 'lettersPagination', 'loadLetters');
+                }
+                if (scrollToTop) document.getElementById('lettersContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } catch (e) {
+                container.innerHTML = `
+                    <div class="col-12 text-center text-danger py-5">
+                        加载失败：${e.message}
+                        <div><button class="btn btn-primary mt-2" onclick="loadLetters(${page}, true)">重试</button></div>
+                    </div>
+                `;
+                paginationEl.classList.add('d-none');
+            }
+        }
+
+        // 通用的加载函数，处理有码(0)、无码(1)、欧美(2)、动漫(4)
+        async function loadSeriesList(type, containerId, paginationId, funcName, emptyText, page, scrollToTop = false) {
+            const container = document.getElementById(containerId);
+            const paginationEl = document.getElementById(paginationId);
+            container.innerHTML = `<div class="col-12 text-center py-5"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted">加载中...</p></div>`;
+            paginationEl.classList.add('d-none');
+
+            try {
+                // 将 type 传入 api，从而触发后端的透传
+                const res = await fetch(`/api/series?type=${type}&page=${page}&limit=24`);
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || '加载失败');
+
+                const series = data.data.series || [];
+                renderSeriesCards(series, containerId, emptyText);
+
+                if (series.length > 0) {
+                    renderPagination(page, series.length, paginationId, funcName);
+                }
+                if (scrollToTop) document.getElementById(containerId).scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } catch (e) {
+                container.innerHTML = `
+                    <div class="col-12 text-center text-danger py-5">
+                        加载失败：${e.message}
+                        <div><button class="btn btn-primary mt-2" onclick="${funcName}(${page}, true)">重试</button></div>
+                    </div>
+                `;
+                paginationEl.classList.add('d-none');
+            }
+        }
+
+        // 定义包裹函数，对应有码(0), 无码(1), 欧美(2), 动漫(4)
+        function loadCensoredSeries(page, scrollToTop) {
+            loadSeriesList(0, 'censoredContainer', 'censoredPagination', 'loadCensoredSeries', '未找到有码系列', page, scrollToTop);
+        }
+        function loadUncensoredSeries(page, scrollToTop) {
+            loadSeriesList(1, 'uncensoredContainer', 'uncensoredPagination', 'loadUncensoredSeries', '未找到无码系列', page, scrollToTop);
+        }
+        function loadWesternSeries(page, scrollToTop) {
+            loadSeriesList(2, 'westernContainer', 'westernPagination', 'loadWesternSeries', '未找到欧美系列', page, scrollToTop);
+        }
+        function loadAnimeSeries(page, scrollToTop) {
+            loadSeriesList(4, 'animeContainer', 'animePagination', 'loadAnimeSeries', '未找到动漫系列', page, scrollToTop);
+        }
+
+        // ========== 初始化与事件监听 ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            // 加载默认选项卡
+            const activeTab = '{{ active_tab }}';
+            if (activeTab === 'censored') loadCensoredSeries(1);
+            else if (activeTab === 'uncensored') loadUncensoredSeries(1);
+            else if (activeTab === 'western') loadWesternSeries(1);
+            else if (activeTab === 'anime') loadAnimeSeries(1);
+            else loadLetters(1); // 默认
+
+            // 监听选项卡切换，按需懒加载数据
+            const tabs = document.querySelectorAll('#seriesTabs .nav-link');
+            tabs.forEach(tab => {
+                tab.addEventListener('shown.bs.tab', function(e) {
+                    const targetId = e.target.getAttribute('data-bs-target');
+                    if (targetId === '#panel-letters' && document.getElementById('lettersContainer').children.length === 0) {
+                        loadLetters(1);
+                    } else if (targetId === '#panel-censored' && document.getElementById('censoredContainer').children.length === 0) {
+                        loadCensoredSeries(1);
+                    } else if (targetId === '#panel-uncensored' && document.getElementById('uncensoredContainer').children.length === 0) {
+                        loadUncensoredSeries(1);
+                    } else if (targetId === '#panel-western' && document.getElementById('westernContainer').children.length === 0) {
+                        loadWesternSeries(1);
+                    } else if (targetId === '#panel-anime' && document.getElementById('animeContainer').children.length === 0) {
+                        loadAnimeSeries(1);
+                    }
+                });
+            });
+        });
+    </script>
+{% endblock %}

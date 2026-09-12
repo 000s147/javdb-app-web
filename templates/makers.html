@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+
+{% block title %}片商 - JavDB{% endblock %}
+
+{% block styles %}
+    <style>
+        .maker-card {
+            transition: transform 0.2s;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+        .maker-card:hover { transform: scale(1.02); }
+        .maker-card .card-body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 140px;
+            text-align: center;
+        }
+        .tab-content { margin-top: 20px; }
+        .nav-link:hover {
+            transition: none !important;
+        }
+        /* 彻底清除导航选项卡切换时的闪烁、焦点残留和过渡动画 */
+        .nav-tabs .nav-link {
+            transition: none !important; /* 禁用所有属性的动画 */
+        }
+
+        /* 强制清除未激活标签的背景色和边框色 */
+        .nav-tabs .nav-link:not(.active) {
+            background-color: transparent !important;
+            border-color: transparent !important;
+            color: inherit; /* 保持文字原本颜色 */
+        }
+
+        /* 消除按钮点击后的焦点外发光和点击瞬间的默认样式 */
+        .nav-tabs .nav-link:focus,
+        .nav-tabs .nav-link:active {
+            box-shadow: none !important;
+            outline: none !important;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4 text-center">🏢 片商</h1>
+
+    <!-- 选项卡 -->
+    <ul class="nav nav-tabs" id="makerTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'censored' %}active{% endif %}" id="tab-censored" data-bs-toggle="tab" data-bs-target="#panel-censored" type="button" role="tab">有码</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'uncensored' %}active{% endif %}" id="tab-uncensored" data-bs-toggle="tab" data-bs-target="#panel-uncensored" type="button" role="tab">无码</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'western' %}active{% endif %}" id="tab-western" data-bs-toggle="tab" data-bs-target="#panel-western" type="button" role="tab">欧美</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'fc2' %}active{% endif %}" id="tab-fc2" data-bs-toggle="tab" data-bs-target="#panel-fc2" type="button" role="tab">FC2</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'anime' %}active{% endif %}" id="tab-anime" data-bs-toggle="tab" data-bs-target="#panel-anime" type="button" role="tab">动漫</button>
+        </li>
+    </ul>
+
+    <!-- 面板 -->
+    <div class="tab-content" id="makerTabContent">
+        <!-- 有码 -->
+        <div class="tab-pane fade show {% if active_tab == 'censored' %}active{% endif %}" id="panel-censored" role="tabpanel">
+            <div class="row mt-2" id="censoredContainer"></div>
+            <nav aria-label="Page navigation" class="mt-4 d-none" id="censoredPagination">
+                <ul class="pagination justify-content-center mb-0" id="censoredPaginationList"></ul>
+            </nav>
+        </div>
+        <!-- 无码 -->
+        <div class="tab-pane fade show {% if active_tab == 'uncensored' %}active{% endif %}" id="panel-uncensored" role="tabpanel">
+            <div class="row mt-2" id="uncensoredContainer"></div>
+            <nav aria-label="Page navigation" class="mt-4 d-none" id="uncensoredPagination">
+                <ul class="pagination justify-content-center mb-0" id="uncensoredPaginationList"></ul>
+            </nav>
+        </div>
+        <!-- 欧美 -->
+        <div class="tab-pane fade show {% if active_tab == 'western' %}active{% endif %}" id="panel-western" role="tabpanel">
+            <div class="row mt-2" id="westernContainer"></div>
+            <nav aria-label="Page navigation" class="mt-4 d-none" id="westernPagination">
+                <ul class="pagination justify-content-center mb-0" id="westernPaginationList"></ul>
+            </nav>
+        </div>
+        <!-- FC2 -->
+        <div class="tab-pane fade show {% if active_tab == 'fc2' %}active{% endif %}" id="panel-fc2" role="tabpanel">
+            <div class="row mt-2" id="fc2Container"></div>
+            <nav aria-label="Page navigation" class="mt-4 d-none" id="fc2Pagination">
+                <ul class="pagination justify-content-center mb-0" id="fc2PaginationList"></ul>
+            </nav>
+        </div>
+        <!-- 动漫 -->
+        <div class="tab-pane fade show {% if active_tab == 'anime' %}active{% endif %}" id="panel-anime" role="tabpanel">
+            <div class="row mt-2" id="animeContainer"></div>
+            <nav aria-label="Page navigation" class="mt-4 d-none" id="animePagination">
+                <ul class="pagination justify-content-center mb-0" id="animePaginationList"></ul>
+            </nav>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        // ========== 渲染片商卡片 ==========
+        function renderMakerCards(makers, containerId, emptyText) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            if (!makers || makers.length === 0) {
+                container.innerHTML = `<div class="col-12 text-center text-muted py-5">${emptyText}</div>`;
+                return;
+            }
+            makers.forEach(item => {
+                const detailUrl = `/maker/${item.id}`;
+                container.innerHTML += `
+                    <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                        <div class="card h-100 maker-card shadow-sm border-0">
+                            <a href="${detailUrl}" class="card-link-block h-100" target="_blank">
+                                <div class="card-body">
+                                    <h5 class="card-title fw-bold text-primary mb-3" title="${item.name}">${item.name}</h5>
+                                    <span class="badge bg-light text-dark border shadow-sm">📁 ${item.videos_count} 部作品</span>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // ========== 分页工具 ==========
+        function renderPagination(currentPage, loadedCount, paginationId, loadFunc) {
+            const limit = 24;
+            const paginationUl = document.getElementById(paginationId + 'List');
+            paginationUl.innerHTML = '';
+
+            const isLastPage = loadedCount < limit;
+            const prevDisabled = currentPage <= 1 ? 'disabled' : '';
+
+            paginationUl.innerHTML += `
+                <li class="page-item ${prevDisabled}">
+                    <a class="page-link" href="javascript:void(0)" onclick="if(${currentPage} > 1) ${loadFunc}(${currentPage - 1}, true)">上一页</a>
+                </li>
+            `;
+
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = isLastPage ? currentPage : currentPage + 2;
+
+            for (let i = startPage; i <= endPage; i++) {
+                if (i === currentPage) {
+                    paginationUl.innerHTML += `<li class="page-item active"><span class="page-link">${i}</span></li>`;
+                } else {
+                    paginationUl.innerHTML += `<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="${loadFunc}(${i}, true)">${i}</a></li>`;
+                }
+            }
+
+            const nextDisabled = isLastPage ? 'disabled' : '';
+            paginationUl.innerHTML += `
+                <li class="page-item ${nextDisabled}">
+                    <a class="page-link" href="javascript:void(0)" onclick="if(!${isLastPage}) ${loadFunc}(${currentPage + 1}, true)">下一页</a>
+                </li>
+            `;
+
+            paginationUl.innerHTML += `
+                <li class="page-item ms-3 d-flex align-items-center">
+                    <input type="number" class="jumpPageInput form-control text-center px-1" style="width: 60px; height: 38px;" value="${currentPage + 1}" min="1">
+                    <button class="btn btn-outline-primary ms-1" style="height: 38px;" onclick="jumpToPage('${paginationId}', '${loadFunc}')">跳转</button>
+                </li>
+            `;
+
+            document.getElementById(paginationId).classList.remove('d-none');
+        }
+
+        function jumpToPage(paginationId, loadFunc) {
+            const input = document.querySelector(`#${paginationId} .jumpPageInput`);
+            const val = input.value;
+            const p = parseInt(val, 10);
+            if (p && p > 0) {
+                const fn = eval(loadFunc);
+                if (typeof fn === 'function') fn(p, true);
+            }
+        }
+
+        // ========== 加载各类型片商 ==========
+        async function loadMakers(type, containerId, paginationId, funcName, emptyText, page, scrollToTop = false) {
+            const container = document.getElementById(containerId);
+            const paginationEl = document.getElementById(paginationId);
+            container.innerHTML = `<div class="col-12 text-center py-5"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted">加载中...</p></div>`;
+            paginationEl.classList.add('d-none');
+
+            try {
+                const res = await fetch(`/api/makers?type=${type}&page=${page}&limit=24`);
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || '加载失败');
+
+                const makers = data.data.makers || [];
+                renderMakerCards(makers, containerId, emptyText);
+
+                if (makers.length > 0) {
+                    renderPagination(page, makers.length, paginationId, funcName);
+                }
+                if (scrollToTop) document.getElementById(containerId).scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } catch (e) {
+                container.innerHTML = `
+                    <div class="col-12 text-center text-danger py-5">
+                        加载失败：${e.message}
+                        <div><button class="btn btn-primary mt-2" onclick="${funcName}(${page}, true)">重试</button></div>
+                    </div>
+                `;
+                paginationEl.classList.add('d-none');
+            }
+        }
+
+        // 包裹函数
+        function loadCensored(page, scrollToTop) {
+            loadMakers(0, 'censoredContainer', 'censoredPagination', 'loadCensored', '未找到有码片商', page, scrollToTop);
+        }
+        function loadUncensored(page, scrollToTop) {
+            loadMakers(1, 'uncensoredContainer', 'uncensoredPagination', 'loadUncensored', '未找到无码片商', page, scrollToTop);
+        }
+        function loadWestern(page, scrollToTop) {
+            loadMakers(2, 'westernContainer', 'westernPagination', 'loadWestern', '未找到欧美片商', page, scrollToTop);
+        }
+        function loadFc2(page, scrollToTop) {
+            loadMakers(3, 'fc2Container', 'fc2Pagination', 'loadFc2', '未找到FC2片商', page, scrollToTop);
+        }
+        function loadAnime(page, scrollToTop) {
+            loadMakers(4, 'animeContainer', 'animePagination', 'loadAnime', '未找到动漫片商', page, scrollToTop);
+        }
+
+        // ========== 初始化 ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            const activeTab = '{{ active_tab }}';
+            if (activeTab === 'censored') loadCensored(1);
+            else if (activeTab === 'uncensored') loadUncensored(1);
+            else if (activeTab === 'western') loadWestern(1);
+            else if (activeTab === 'fc2') loadFc2(1);
+            else if (activeTab === 'anime') loadAnime(1);
+            else loadCensored(1); // 默认有码
+
+            // 选项卡切换懒加载
+            const tabs = document.querySelectorAll('#makerTabs .nav-link');
+            tabs.forEach(tab => {
+                tab.addEventListener('shown.bs.tab', function(e) {
+                    const targetId = e.target.getAttribute('data-bs-target');
+                    const map = {
+                        '#panel-censored': { container: 'censoredContainer', loader: loadCensored },
+                        '#panel-uncensored': { container: 'uncensoredContainer', loader: loadUncensored },
+                        '#panel-western': { container: 'westernContainer', loader: loadWestern },
+                        '#panel-fc2': { container: 'fc2Container', loader: loadFc2 },
+                        '#panel-anime': { container: 'animeContainer', loader: loadAnime }
+                    };
+                    const entry = map[targetId];
+                    if (entry && document.getElementById(entry.container).children.length === 0) {
+                        entry.loader(1);
+                    }
+                });
+            });
+        });
+    </script>
+{% endblock %}

@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+
+{% block title %}往期佳片 - JavDB{% endblock %}
+
+{% block styles %}
+    <style>
+        .period-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+        .period-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 .5rem 1rem rgba(0,0,0,.15);
+        }
+        .period-card .card-body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 140px;
+            text-align: center;
+        }
+        .movie-card { transition: transform 0.2s; }
+        .movie-card:hover { transform: scale(1.02); }
+        .movie-card img { width: 100%; height: 220px; object-fit: cover; }
+        .back-btn { cursor: pointer; }
+        .period-link {
+            display: block;
+            color: inherit;
+            text-decoration: none;
+        }
+        .period-link:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 .5rem 1rem rgba(0,0,0,.15);
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="d-flex align-items-center mb-4">
+        <h1 class="mb-0 flex-grow-1">📅 往期佳片</h1>
+        <button id="backToPeriodsBtn" class="btn btn-outline-secondary back-btn d-none" onclick="showPeriodsView()">
+            ← 返回期数列表
+        </button>
+    </div>
+
+    <!-- 期数列表视图 -->
+    <div id="periodsView">
+        <p class="text-muted mb-3">每期精选 10 部佳片</p>
+        <div class="row" id="periodsContainer"></div>
+        <nav aria-label="Page navigation" class="mt-4 d-none" id="periodsPagination">
+            <ul class="pagination justify-content-center mb-0" id="periodsPaginationList"></ul>
+        </nav>
+    </div>
+
+    <!-- 影片列表视图（初始隐藏） -->
+    <div id="moviesView" class="d-none">
+        <div id="periodInfo" class="alert alert-info mb-3">
+            <strong>期数 #<span id="currentPeriodNum"></span></strong>
+            <span class="ms-3 text-muted" id="currentPeriodDate"></span>
+        </div>
+        <div class="row" id="moviesContainer"></div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        let currentPage = 1;
+        let currentPeriod = null;
+
+        // ========== 工具：分页 ==========
+        function renderPagination(currentPage, loadedCount, paginationId, loadFunc) {
+            const limit = 24;
+            const paginationUl = document.getElementById(paginationId + 'List');
+            paginationUl.innerHTML = '';
+
+            const isLastPage = loadedCount < limit;
+            const prevDisabled = currentPage <= 1 ? 'disabled' : '';
+
+            paginationUl.innerHTML += `
+                <li class="page-item ${prevDisabled}">
+                    <a class="page-link" href="javascript:void(0)" onclick="if(${currentPage} > 1) ${loadFunc}(${currentPage - 1}, true)">上一页</a>
+                </li>
+            `;
+
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = isLastPage ? currentPage : currentPage + 2;
+
+            for (let i = startPage; i <= endPage; i++) {
+                if (i === currentPage) {
+                    paginationUl.innerHTML += `<li class="page-item active"><span class="page-link">${i}</span></li>`;
+                } else {
+                    paginationUl.innerHTML += `<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="${loadFunc}(${i}, true)">${i}</a></li>`;
+                }
+            }
+
+            const nextDisabled = isLastPage ? 'disabled' : '';
+            paginationUl.innerHTML += `
+                <li class="page-item ${nextDisabled}">
+                    <a class="page-link" href="javascript:void(0)" onclick="if(!${isLastPage}) ${loadFunc}(${currentPage + 1}, true)">下一页</a>
+                </li>
+            `;
+
+            paginationUl.innerHTML += `
+                <li class="page-item ms-3 d-flex align-items-center">
+                    <input type="number" class="jumpPageInput form-control text-center px-1" style="width: 60px; height: 38px;" value="${currentPage + 1}" min="1">
+                    <button class="btn btn-outline-primary ms-1" style="height: 38px;" onclick="jumpToPage('${paginationId}', '${loadFunc}')">跳转</button>
+                </li>
+            `;
+
+            document.getElementById(paginationId).classList.remove('d-none');
+        }
+
+        function jumpToPage(paginationId, loadFunc) {
+            const input = document.querySelector(`#${paginationId} .jumpPageInput`);
+            const val = input.value;
+            const p = parseInt(val, 10);
+            if (p && p > 0) {
+                const fn = eval(loadFunc);
+                if (typeof fn === 'function') fn(p, true);
+            }
+        }
+
+        // ========== 视图切换（更新 URL） ==========
+        function showPeriodsView() {
+            // 移除 URL 中的 period 参数
+            const url = new URL(window.location);
+            url.searchParams.delete('period');
+            history.pushState({}, '', url);
+
+            document.getElementById('periodsView').classList.remove('d-none');
+            document.getElementById('moviesView').classList.add('d-none');
+            document.getElementById('backToPeriodsBtn').classList.add('d-none');
+            // 如果期数列表为空，重新加载
+            if (document.getElementById('periodsContainer').children.length === 0) {
+                loadPeriods(1);
+            }
+        }
+
+        function showMoviesView(period, periodDate) {
+            // 更新 URL 参数
+            const url = new URL(window.location);
+            url.searchParams.set('period', period);
+            history.pushState({}, '', url);
+
+            document.getElementById('periodsView').classList.add('d-none');
+            document.getElementById('moviesView').classList.remove('d-none');
+            document.getElementById('backToPeriodsBtn').classList.remove('d-none');
+            document.getElementById('currentPeriodNum').innerText = period;
+            document.getElementById('currentPeriodDate').innerText = periodDate ? '创建于 ' + periodDate : '';
+            loadMovies(period);
+        }
+
+        // ========== 加载期数列表 ==========
+        async function loadPeriods(page, scrollToTop = false) {
+            currentPage = page;
+            const container = document.getElementById('periodsContainer');
+            const paginationEl = document.getElementById('periodsPagination');
+
+            container.innerHTML = `<div class="col-12 text-center py-5"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted">加载中...</p></div>`;
+            paginationEl.classList.add('d-none');
+
+            try {
+                const res = await fetch(`/api/recommend_periods?page=${page}&limit=24`);
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || '加载失败');
+
+                const periods = data.data.periods || [];
+                container.innerHTML = '';
+                if (periods.length === 0) {
+                    container.innerHTML = '<div class="col-12 text-center text-muted py-5">暂无期数</div>';
+                    return;
+                }
+
+                // 在 loadPeriods 函数中，卡片生成部分改为：
+                periods.forEach(item => {
+                    const date = new Date(item.created_at);
+                    const dateStr = date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
+                    const href = `?period=${item.period}`;
+                    container.innerHTML += `
+                        <div class="col-md-3 col-sm-6 mb-4">
+                            <a href="${href}" class="card h-100 period-card shadow-sm border-0 text-decoration-none period-link" data-period="${item.period}" data-date="${dateStr}">
+                                <div class="card-body">
+                                    <h3 class="card-title fw-bold text-primary mb-2">#${item.period}</h3>
+                                    <p class="text-muted small mb-1">📁 ${item.movies_count} 部影片</p>
+                                    <p class="text-muted small mb-0">📅 ${dateStr}</p>
+                                </div>
+                            </a>
+                        </div>
+                    `;
+                });
+
+                if (periods.length > 0) {
+                    renderPagination(page, periods.length, 'periodsPagination', 'loadPeriods');
+                }
+                if (scrollToTop) container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+                // 在 loadPeriods 末尾绑定点击事件（委托）
+                document.querySelectorAll('.period-link').forEach(link => {
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault(); // 阻止页面跳转
+                        const period = this.dataset.period;
+                        const date = this.dataset.date;
+                        showMoviesView(period, date);
+                    });
+                });
+            } catch (e) {
+                container.innerHTML = `
+                    <div class="col-12 text-center text-danger py-5">
+                        加载失败：${e.message}
+                        <div><button class="btn btn-primary mt-2" onclick="loadPeriods(${currentPage}, true)">重试</button></div>
+                    </div>
+                `;
+                // 确保分页隐藏（已是 d-none，但以防万一）
+                document.getElementById('periodsPagination').classList.add('d-none');
+            }
+        }
+
+        // ========== 加载特定期数的影片 ==========
+        async function loadMovies(period) {
+            const container = document.getElementById('moviesContainer');
+            container.innerHTML = `<div class="col-12 text-center py-5"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted">加载中...</p></div>`;
+
+            try {
+                const res = await fetch(`/api/recommend_period?period=${period}`);
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || '加载失败');
+
+                const movies = data.data.movies || [];
+                container.innerHTML = '';
+                if (movies.length === 0) {
+                    container.innerHTML = '<div class="col-12 text-center text-muted py-5">该期暂无影片</div>';
+                    return;
+                }
+
+                movies.forEach(movie => {
+                    const coverFixed = `/api/image_proxy?url=${encodeURIComponent(movie.cover_url)}`
+                    const detailUrl = `/movie/${movie.id}`;
+                    const score = movie.score ? parseFloat(movie.score).toFixed(1) : 'N/A';
+                    container.innerHTML += `
+                        <div class="col-md-3 mb-4">
+                            <div class="card movie-card h-100 shadow-sm border-0">
+                                <a href="${detailUrl}" class="card-link-block" target="_blank">
+                                    <div class="position-relative">
+                                        <img src="${coverFixed}" alt="${movie.number}" onerror="this.src='{{ url_for('static', filename='images/noimage.jpg') }}'">
+                                        <div class="position-absolute top-0 end-0 d-flex gap-1 m-2">
+                                            ${ movie.can_play ? '<span class="badge bg-success">可播放</span>' : '' }
+                                        </div>
+                                    </div>
+                                    <div class="card-body p-3">
+                                        <h6 class="card-title text-truncate fw-bold" title="${movie.number}">${movie.number}</h6>
+                                        <p class="card-text small text-muted mb-2" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.5; height: 3.0em;" title="${movie.title}">${movie.title}</p>
+                                        <div class="d-flex justify-content-between align-items-center mt-2">
+                                            <div>
+                                                <span class="badge bg-light text-dark border">${ movie.release_date || '' }</span>
+                                                <span class="badge bg-light text-dark border">${ movie.duration ? movie.duration+' 分钟' : '' }</span>
+                                            </div>
+                                            <span class="badge bg-warning text-dark">⭐ ${score}</span>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch (e) {
+                container.innerHTML = `
+                    <div class="col-12 text-center text-danger py-5">
+                        加载失败：${e.message}
+                        <div><button class="btn btn-primary mt-2" onclick="loadMovies('${period}')">重试</button></div>
+                    </div>
+                `;
+            }
+        }
+
+        // ========== 初始化：根据 URL 参数决定显示哪个视图 ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const periodParam = urlParams.get('period');
+
+            if (periodParam) {
+                // 直接加载该期影片（需要先获取日期，但这里没有，我们可以先显示期数，同时获取信息）
+                // 简单处理：直接调用 showMoviesView，但日期未知，先显示期数编号
+                showMoviesView(periodParam, '');
+            } else {
+                loadPeriods(1);
+            }
+        });
+
+        // 监听浏览器前进后退事件，同步视图
+        window.addEventListener('popstate', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const periodParam = urlParams.get('period');
+            if (periodParam) {
+                // 切换到影片视图
+                document.getElementById('periodsView').classList.add('d-none');
+                document.getElementById('moviesView').classList.remove('d-none');
+                document.getElementById('backToPeriodsBtn').classList.remove('d-none');
+                document.getElementById('currentPeriodNum').innerText = periodParam;
+                document.getElementById('currentPeriodDate').innerText = '';
+                loadMovies(periodParam);
+            } else {
+                // 回到期数列表
+                document.getElementById('periodsView').classList.remove('d-none');
+                document.getElementById('moviesView').classList.add('d-none');
+                document.getElementById('backToPeriodsBtn').classList.add('d-none');
+                if (document.getElementById('periodsContainer').children.length === 0) {
+                    loadPeriods(1);
+                }
+            }
+        });
+    </script>
+{% endblock %}

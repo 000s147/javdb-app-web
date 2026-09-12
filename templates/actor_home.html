@@ -1,0 +1,935 @@
+{% extends "base.html" %}
+
+{% block title %}加载中...{% endblock %}
+
+{% block styles %}
+    <style>
+        .movie-card { transition: transform 0.2s; }
+        .movie-card:hover { transform: scale(1.02); }
+        .movie-card img { width: 100%; height: 220px; object-fit: cover; }
+        .filter-section {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
+        }
+        .tag-checkbox {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 4px;
+        }
+        .tag-checkbox input[type="checkbox"] {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+            width: 0;
+            height: 0;
+        }
+        .tag-checkbox label {
+			display: inline-block;
+			padding: 0.375rem 0.75rem;
+			border: 1px solid #dee2e6 !important;  /* 增加 !important */
+			border-radius: 0.375rem;
+			background-color: #f8f9fa !important;  /* 增加 !important */
+			color: #212529 !important;             /* 增加 !important */
+			cursor: pointer;
+			transition: all 0.2s ease;             /* 保持原有动画属性 */
+			font-size: 0.9rem;
+			user-select: none;
+		}
+        .tag-checkbox input[type="checkbox"]:checked + label {
+            background-color: #0d6efd !important;
+            color: #fff !important;
+            border-color: #0d6efd !important;
+        }
+        .tag-checkbox input[type="checkbox"]:disabled + label {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .tag-checkbox input[type="checkbox"]:not(:checked) + label:hover {
+            background-color: #e9ecef !important;
+        }
+        .tag-checkbox input[disabled] + label {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .group-title {
+            font-weight: 600;
+            margin-top: 12px;
+            margin-bottom: 8px;
+            color: #0d6efd;
+            border-bottom: 1px solid #e9ecef;
+            padding-bottom: 4px;
+        }
+        /* 演员信息容器 - 增加底部间距和字体微调 */
+        #actorInfo {
+            gap: 8px 8px;          /* 行间距 8px，列间距 12px */
+            font-size: 0.95rem;
+            margin-top: 8px;
+        }
+
+        /* 信息标签的通用样式 */
+        .info-chip {
+            display: inline-flex;
+            align-items: center;
+            background: #f1f3f5;        /* 浅灰底 */
+            padding: 4px 14px 4px 12px;
+            border-radius: 30px;         /* 大圆角胶囊 */
+            border: 1px solid #e9ecef;
+            color: #212529;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            transition: all 0.2s;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+        }
+
+        /* 标签内的图标（使用 Emoji 或 Unicode） */
+        .info-chip .icon {
+            margin-right: 6px;
+            font-size: 1.1rem;
+            line-height: 1;
+        }
+
+        /* 社交链接 badge 风格强化（与 info-chip 统一） */
+        #actorInfo .badge {
+            font-weight: 500;
+            font-size: 0.85rem;
+            text-decoration: none;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            display: inline-flex;
+            align-items: center;
+            background: #f1f3f5;        /* 浅灰底 */
+            padding: 4px 14px 4px 12px;
+            border-radius: 30px;         /* 大圆角胶囊 */
+            color: #212529;
+            line-height: 1.6;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+        }
+        #actorInfo .badge.bg-info {
+            background: #e3f2fd !important;
+            color: #0d6efd;
+            border-color: #b6d4fe;
+        }
+        #actorInfo .badge.bg-danger {
+            background: #fce4ec !important;
+            color: #d63384;
+            border-color: #f8bbd0;
+        }
+        #actorInfo .badge:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+        }
+        /* 统一年份和排序单选按钮样式，使其与类别标签风格一致 */
+        .custom-radio-label {
+            border: 1px solid #dee2e6 !important;
+            border-radius: 0.375rem !important;
+            padding: 0.375rem 0.75rem;
+            background-color: #f8f9fa !important;
+            color: #212529 !important;
+            margin-bottom: 4px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        /* 鼠标悬停效果 */
+        .btn-check:not(:checked) + .custom-radio-label:hover {
+            background-color: #e9ecef !important;
+        }
+        /* 选中时的效果 */
+        .btn-check:checked + .custom-radio-label {
+            background-color: #0d6efd !important;
+            color: #fff !important;
+            border-color: #0d6efd !important;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div id="mainView">
+
+        <div id="actorLoading" class="text-center py-5 d-none">
+            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
+            <h5 class="mt-3 text-muted">加载中...</h5>
+        </div>
+
+        <div id="actorProfile" class="card mb-4 d-none shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-4">
+                    <a href="/actor/{{ actor_id if actor_id else '' }}">
+                        <img id="actorAvatar" data-type="avatar" onerror="this.src='{{ url_for('static', filename='images/noavatar.jpg') }}'" class="rounded-circle shadow-sm" style="width: 120px; min-width: 120px; height: 120px; object-fit: cover;">
+                    </a>
+                    <div class="ms-4">
+                        <h2 id="actorName" class="mb-2 fw-bold"></h2>
+                        <div id="actorOtherName" class="d-flex flex-wrap gap-1"></div>
+                        <!-- 按钮 + 演员信息同一行 -->
+                        <div class="d-flex flex-wrap align-items-center" style="margin-top: 4px; gap: 8px 5px;">
+                            <button id="btnCollect" class="btn btn-sm shadow-sm"
+                                    onclick="toggleCollect()" style="display: none; font-size: 0.85rem; padding: 4px 14px 4px 12px; line-height: 1.6; border: 1px solid #dc3545; border-radius: 30px; white-space: nowrap;margin-top: 7px;">
+                                🤍 收藏
+                            </button>
+                            <div id="actorInfo" class="text-muted d-flex flex-wrap align-items-center" style="font-size: 0.95rem; gap: 5px 5px;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-section border">
+                    <h6 class="group-title">筛选</h6>
+                    <div id="baseFiltersContainer" class="mb-3 d-flex flex-wrap gap-2"></div>
+
+                    <h6 class="group-title">类别</h6>
+                    <div id="tagsContainer" class="mb-3 d-flex flex-wrap gap-2" style="max-height: 800px; overflow-y: auto;"></div>
+
+                    <hr>
+
+                    <h6 class="group-title">年份</h6>
+                    <div id="yearContainer" class="d-flex flex-wrap gap-2 mb-3">
+                        </div>
+
+                    <h6 class="group-title">排序</h6>
+                    <div id="sortContainer" class="d-flex flex-wrap gap-2 mb-4">
+                        <input type="radio" class="btn-check sort-radio" name="sortOption" id="sort_update" value="update|asc">
+                        <label class="btn custom-radio-label btn-sm" for="sort_update">更新时间倒序</label>
+
+                        <input type="radio" class="btn-check sort-radio" name="sortOption" id="sort_release_desc" value="release|desc" checked>
+                        <label class="btn custom-radio-label btn-sm" for="sort_release_desc">发布时间倒序</label>
+
+                        <input type="radio" class="btn-check sort-radio" name="sortOption" id="sort_release_asc" value="release|asc">
+                        <label class="btn custom-radio-label btn-sm" for="sort_release_asc">发布时间正序</label>
+
+                        <input type="radio" class="btn-check sort-radio" name="sortOption" id="sort_score" value="score|asc">
+                        <label class="btn custom-radio-label btn-sm" for="sort_score">评分倒序</label>
+
+                        <input type="radio" class="btn-check sort-radio" name="sortOption" id="sort_hit" value="hit|asc">
+                        <label class="btn custom-radio-label btn-sm" for="sort_hit">热度倒序</label>
+
+                        <input type="radio" class="btn-check sort-radio" name="sortOption" id="sort_want" value="want_watch_count|asc">
+                        <label class="btn custom-radio-label btn-sm" for="sort_want">想看人数倒序</label>
+
+                        <input type="radio" class="btn-check sort-radio" name="sortOption" id="sort_watched" value="watched_count|asc">
+                        <label class="btn custom-radio-label btn-sm" for="sort_watched">看过人数倒序</label>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <button class="btn btn-outline-secondary btn-sm px-3" style="border-radius: 0.375rem;" onclick="clearFilters()">
+                            🗑️ 清空
+                        </button>
+                        <button class="btn btn-primary btn-sm px-4" style="border-radius: 0.375rem;" onclick="loadMovies(1)">
+                            🔍 搜索
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row" id="moviesContainerLoading"></div>
+
+        <div class="row" id="moviesContainer"></div>
+
+        <nav aria-label="Page navigation" class="mt-4 d-none" id="pagination">
+            <ul class="pagination justify-content-center mb-0" id="paginationList">
+            </ul>
+        </nav>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        let initialActorId = '{{ actor_id if actor_id else "" }}';
+
+        // ==========================================
+        // 防抖函数
+        // ==========================================
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => {
+                    func.apply(this, args);
+                }, wait);
+            };
+        }
+
+        let currentActorId = '';
+        let currentPageNum = 1;
+        let isCollected = false; // 记录当前演员是否已被收藏
+
+        // ==========================================
+        // 填充年份按钮组
+        // ==========================================
+        function populateYears() {
+            const container = document.getElementById('yearContainer');
+            const currentYear = new Date().getFullYear();
+
+            // 添加"全部"按钮
+            let html = `
+                <input type="radio" class="btn-check year-radio" name="yearOption" id="year_all" value="" checked>
+                <label class="btn custom-radio-label btn-sm" for="year_all">全部</label>
+            `;
+
+            // 循环生成年份按钮
+            for (let y = currentYear; y >= 2000; y--) {
+                html += `
+                    <input type="radio" class="btn-check year-radio" name="yearOption" id="year_${y}" value="${y}">
+                    <label class="btn custom-radio-label btn-sm" for="year_${y}">${y}</label>
+                `;
+            }
+            container.innerHTML = html;
+        }
+
+        // ==========================================
+        // 标签数量限制逻辑
+        // ==========================================
+        function updateTagUI() {
+            const allTagInputs = document.querySelectorAll('.base-filter-tag, .cat-filter-tag');
+            const checked = document.querySelectorAll('.base-filter-tag:checked, .cat-filter-tag:checked');
+            const count = checked.length;
+            const isFull = count >= 5;
+            allTagInputs.forEach(input => {
+                if (!input.checked) {
+                    input.disabled = isFull;
+                } else {
+                    input.disabled = false;
+                }
+            });
+        }
+
+        function initTagCheckboxes() {
+            const allTagInputs = document.querySelectorAll('.base-filter-tag, .cat-filter-tag:not(.hidden-filter-tag)');
+            const MAX_TAGS = 5;
+
+            allTagInputs.forEach(input => {
+                input.addEventListener('change', function(e) {
+                    if (this.checked) {
+                        const currentChecked = document.querySelectorAll('.base-filter-tag:checked, .cat-filter-tag:checked');
+                        if (currentChecked.length > MAX_TAGS) {
+                            this.checked = false;
+                            alert(`最多只能选择 ${MAX_TAGS} 个标签`);
+                            return;
+                        }
+                    }
+                    updateTagUI();
+
+                    // ✅ 立即显示 Loading
+                    const containerLD = document.getElementById('moviesContainerLoading');
+                    const paginationEl = document.getElementById('pagination');
+                    containerLD.innerHTML = `
+                        <div class="col-12 text-center py-5">
+                            <div class="spinner-border text-primary"></div>
+                            <p class="mt-2 text-muted">加载中...</p>
+                        </div>
+                    `;
+                    containerLD.classList.remove('d-none');
+                    paginationEl.classList.add('d-none');
+
+                    debouncedLoadMovies();
+                });
+            });
+
+            updateTagUI();
+        }
+
+        // ==========================================
+        // 【新增函数】专门为动态生成的隐藏标签绑定事件
+        // ==========================================
+        function bindHiddenTagEvents() {
+            const hiddenInputs = document.querySelectorAll('.hidden-filter-tag');
+            const MAX_TAGS = 5;
+
+            hiddenInputs.forEach(input => {
+                input.addEventListener('change', function(e) {
+                    if (this.checked) {
+                        const currentChecked = document.querySelectorAll('.base-filter-tag:checked, .cat-filter-tag:checked');
+                        if (currentChecked.length > MAX_TAGS) {
+                            this.checked = false;
+                            alert(`最多只能选择 ${MAX_TAGS} 个标签`);
+                            return;
+                        }
+                    }
+                    updateTagUI();
+
+                    // 立即显示 Loading
+                    const containerLD = document.getElementById('moviesContainerLoading');
+                    const paginationEl = document.getElementById('pagination');
+                    containerLD.innerHTML = `
+                        <div class="col-12 text-center py-5">
+                            <div class="spinner-border text-primary"></div>
+                            <p class="mt-2 text-muted">加载中...</p>
+                        </div>
+                    `;
+                    containerLD.classList.remove('d-none');
+                    paginationEl.classList.add('d-none');
+
+                    debouncedLoadMovies();
+                });
+            });
+        }
+
+        const debouncedLoadMovies = debounce(() => loadMovies(1), 200);
+
+        // ==========================================
+        // 【已修改】清空筛选（联动移除隐藏标签 DOM 区域）
+        // ==========================================
+        function clearFilters() {
+            document.querySelectorAll('.base-filter-tag:checked, .cat-filter-tag:checked').forEach(cb => cb.checked = false);
+
+            // 重置年份按钮
+            document.getElementById('year_all').checked = true;
+
+            // 重置为默认排序（发布时间倒序，对应 release|desc）
+            document.getElementById('sort_release_desc').checked = true;
+
+            updateTagUI();
+
+            // 重置页码（全局变量）
+            currentPageNum = 1;
+            // 立即更新 URL（不带 page 参数，或带 page=1）
+            updateUrlParams(1);
+
+            const containerLD = document.getElementById('moviesContainerLoading');
+            const paginationEl = document.getElementById('pagination');
+            containerLD.innerHTML = `
+                <div class="col-12 text-center py-5">
+                    <div class="spinner-border text-primary"></div>
+                    <p class="mt-2 text-muted">加载中...</p>
+                </div>
+            `;
+            containerLD.classList.remove('d-none');
+            paginationEl.classList.add('d-none');
+
+            debouncedLoadMovies();
+        }
+
+        // ==========================================
+        // 【已修改】加载演员信息（核心支持：差集对比生成隐藏标签区）
+        // ==========================================
+        async function loadActor(actorId) {
+            const id = actorId;
+            if (!id) {
+                const container = document.getElementById('moviesContainer');
+                container.innerHTML = `
+                    <div class="col-12 text-center py-5">
+                        <p class="mt-2 text-danger">请输入演员 ID</p>
+                    </div>
+                `;
+                document.title = '请输入演员 ID - 演员 - JavDB';
+                document.getElementById('actorLoading').classList.add('d-none');
+                return;
+            }
+
+            document.getElementById('actorLoading').classList.remove('d-none');
+            document.getElementById('actorProfile').classList.add('d-none');
+            document.getElementById('moviesContainer').innerHTML = '';
+            document.getElementById('pagination').classList.add('d-none');
+
+            try {
+                const res = await fetch(`/api/actor/${id}`);
+                const data = await res.json();
+
+                document.getElementById('actorLoading').classList.add('d-none');
+
+                if (data.success) {
+                    currentActorId = id;
+                    const actor = data.data.actor;
+
+                    document.getElementById('actorName').innerText = actor.name;
+                    document.getElementById('actorAvatar').src = `/api/image_proxy?url=${encodeURIComponent(actor.avatar_url)}`;
+                    document.title = actor.name + ' - 演员 - JavDB';
+
+                    isCollected = data.data.has_collected || false;
+                    updateCollectButton();
+                    document.getElementById('btnCollect').style.display = 'inline-block';
+
+                    let infoHtml = [];
+                    if (actor.videos_count) {
+                        infoHtml.push(`<span class="info-chip"><span class="icon">📽️</span>作品 ${actor.videos_count}</span>`);
+                    }
+                    if (actor.type !== null) {
+                        const typeMap = { 0: '🔞 有码', 1: '🔞 无码', 2: '🌍 欧美', 3: '🎥 FC2' };
+                        infoHtml.push(`<span class="info-chip"><span class="icon"></span>${typeMap[actor.type] || '🏷️ 未知'}</span>`);
+                    }
+                    if (actor.age) {
+                        infoHtml.push(`<span class="info-chip"><span class="icon">🎂</span>${actor.age}岁</span>`);
+                    }
+                    if (actor.birthday) {
+                        infoHtml.push(`<span class="info-chip"><span class="icon">📅</span>${actor.birthday}</span>`);
+                    }
+                    if (actor.height) {
+                        infoHtml.push(`<span class="info-chip"><span class="icon">📏</span>${actor.height}cm</span>`);
+                    }
+                    if (actor.cup) {
+                        infoHtml.push(`<span class="info-chip" style="background:#fce4ec; border-color:#f8bbd0;"><span class="icon">💋</span><strong>${actor.cup}</strong>杯</span>`);
+                    }
+                    let bwh = [];
+                    if (actor.bust) bwh.push(`B${actor.bust}`);
+                    if (actor.waist) bwh.push(`W${actor.waist}`);
+                    if (actor.hips) bwh.push(`H${actor.hips}`);
+                    if (bwh.length > 0) {
+                        infoHtml.push(`<span class="info-chip"><span class="icon">📐</span>${bwh.join(' / ')}</span>`);
+                    }
+                    if (actor.blood_type) {
+                        infoHtml.push(`<span class="info-chip"><span class="icon">🩸</span>${actor.blood_type}型</span>`);
+                    }
+                    if (actor.birthplace) {
+                        infoHtml.push(`<span class="info-chip"><span class="icon">📍</span>${actor.birthplace}</span>`);
+                    }
+                    if (actor.twitter_id) {
+                        infoHtml.push(`<a href="https://twitter.com/${actor.twitter_id}" target="_blank" class="badge bg-info text-decoration-none mb-2" style="margin-top: 8px;">🐦 Twitter</a>`);
+                    }
+                    if (actor.instagram_id) {
+                        infoHtml.push(`<a href="https://instagram.com/${actor.instagram_id}" target="_blank" class="badge bg-danger text-decoration-none me-2 mb-2" style="margin-top: 8px;">📸 Instagram</a>`);
+                    }
+                    document.getElementById('actorInfo').innerHTML = infoHtml.join('');
+
+                    document.getElementById('actorOtherName').innerText = actor.other_name || '';
+
+                    const baseDiv = document.getElementById('baseFiltersContainer');
+                    baseDiv.innerHTML = '';
+                    (data.data.filter_tags || []).forEach(tag => {
+                        baseDiv.innerHTML += `
+                            <div class="tag-checkbox">
+                                <input class="base-filter-tag" type="checkbox" value="${tag.id}" id="base_${tag.id}">
+                                <label for="base_${tag.id}">${tag.name}</label>
+                            </div>
+                        `;
+                    });
+
+                    const tagsDiv = document.getElementById('tagsContainer');
+                        tagsDiv.innerHTML = '';
+                    (data.data.tags || []).forEach(tag => {
+                        tagsDiv.innerHTML += `
+                            <div class="tag-checkbox">
+                                <!-- 🌟 关键修改：在这里加上了 data-name="${tag.name}" -->
+                                <input class="cat-filter-tag" type="checkbox" value="${tag.id}" id="tag_${tag.id}" data-name="${tag.name}">
+                                <label for="tag_${tag.id}">${tag.name} (${tag.videos_count})</label>
+                            </div>
+                        `;
+                    });
+
+                    initTagCheckboxes();
+
+                    document.getElementById('actorProfile').classList.remove('d-none');
+
+                    // 处理 URL 参数
+                    const urlParams = getUrlParams();
+                    const hasParams = urlParams.filter_tags || urlParams.tags || urlParams.year || urlParams.sort;
+                    const initialPage = urlParams.page || 1;   // 提取页码
+
+                    if (hasParams) {
+                        // ----- 设置基础标签（filter_tags） -----
+                        if (urlParams.filter_tags) {
+                            let ids = urlParams.filter_tags.split(',').map(s => s.trim()).filter(Boolean);
+                            if (ids.length > 5) ids = ids.slice(0, 5);   // 最多 5 个
+                            document.querySelectorAll('.base-filter-tag').forEach(cb => {
+                                if (ids.includes(cb.value)) cb.checked = true;
+                            });
+                        }
+
+                        // ----- 🌟设置类别标签与隐藏标签（tags & tag_names 联动核心） -----
+                        if (urlParams.tags) {
+                            let ids = urlParams.tags.split(',').map(s => s.trim()).filter(Boolean);
+                            let names = (urlParams.tag_names || '').split(',').map(s => s.trim());
+                            if (ids.length > 5) ids = ids.slice(0, 5);
+
+                            let hiddenTagsHtml = '';
+                            let hasHiddenTags = false;
+
+                            ids.forEach((id, index) => {
+                                // 检查演员页面现有的常规标签中是否有这个 id
+                                const existingTagInput = document.querySelector(`.cat-filter-tag[value="${id}"], .base-filter-tag[value="${id}"]`);
+                                if (existingTagInput) {
+                                    existingTagInput.checked = true;
+                                } else {
+                                    // 属于不在列表内的隐藏标签，动态画出节点，并且赋予特殊的 .hidden-filter-tag 标识类
+                                    hasHiddenTags = true;
+                                    const tagName = names[index] || '未知标签';
+                                    hiddenTagsHtml += `
+                                        <div class="tag-checkbox">
+                                            <input class="cat-filter-tag hidden-filter-tag" type="checkbox" value="${id}" id="tag_hidden_${id}" checked data-name="${tagName}">
+                                            <label for="tag_hidden_${id}">${tagName}</label>
+                                        </div>
+                                    `;
+                                }
+                            });
+
+                            // 如果发现有隐藏标签，拼装外层大框，并插入到“类别:”标题上方
+                            if (hasHiddenTags) {
+                                const wrapper = document.createElement('div');
+                                wrapper.id = 'hiddenTagsWrapper';
+                                wrapper.innerHTML = `
+                                    <h6 class="group-title" style="color: #ff9800; border-bottom-color: #ff9800;">📌 当前筛选的隐藏标签</h6>
+                                    <div class="d-flex flex-wrap gap-2 mb-3">
+                                        ${hiddenTagsHtml}
+                                    </div>
+                                `;
+                                const tagsContainer = document.getElementById('tagsContainer');
+                                if (tagsContainer && tagsContainer.parentNode) {
+                                    const baseContainer = document.getElementById('baseFiltersContainer');
+                                    if (baseContainer && baseContainer.nextSibling) {
+                                        baseContainer.parentNode.insertBefore(wrapper, baseContainer.nextSibling);
+                                    } else {
+                                        tagsContainer.parentNode.insertBefore(wrapper, tagsContainer);
+                                    }
+                                }
+                                // 单独为新插入的节点激活事件绑定
+                                bindHiddenTagEvents();
+                            }
+                        }
+
+                        // ----- 设置年份 -----
+                        if (urlParams.year) {
+                            const yearRadio = document.getElementById(`year_${urlParams.year}`);
+                            if (yearRadio) yearRadio.checked = true;
+                            else document.getElementById('year_all').checked = true;  // 回退
+                        }
+
+                        // ----- 设置排序 -----
+                        if (urlParams.sort) {
+                            const sortRadio = document.querySelector(`.sort-radio[value="${urlParams.sort}"]`);
+                            if (sortRadio) sortRadio.checked = true;
+                        }
+
+                        // 更新标签禁用状态（因为可能选中了标签）
+                        updateTagUI();
+
+                        // 加载影片（带参数）
+                        await loadMovies(initialPage);
+                    } else {
+                        // 无参数时保持原有行为
+                        await loadMovies(initialPage);
+                    }
+
+                    const containerLD = document.getElementById('moviesContainerLoading');
+                    fadeOut(containerLD);
+                } else {
+                    // ---- 错误展示带重试按钮 ----
+                    const container = document.getElementById('moviesContainer');
+                    container.innerHTML = `
+                        <div class="col-12 text-center py-5">
+                            <p class="mt-2 text-danger">获取演员信息失败</p>
+                            <button class="btn btn-primary" onclick="loadActor('${id}')">重试</button>
+                        </div>
+                    `;
+                    document.title = '获取演员信息失败 - 演员 - JavDB';
+                    const containerLD = document.getElementById('moviesContainerLoading');
+                    fadeOut(containerLD);
+                }
+            } catch (e) {
+                document.getElementById('actorLoading').classList.add('d-none');
+                // ---- 错误展示带重试按钮 ----
+                const container = document.getElementById('moviesContainer');
+                container.innerHTML = `
+                    <div class="col-12 text-center py-5">
+                        <p class="mt-2 text-danger">网络请求失败：${e.message}</p>
+                        <button class="btn btn-primary" onclick="loadActor('${id}')">重试</button>
+                    </div>
+                `;
+                document.title = '网络请求失败 - 演员 - JavDB';
+            }
+        }
+
+        // ==========================================
+        // 加载影片列表
+        // ==========================================
+        async function loadMovies(page, scrollToTop = false) {
+            currentPageNum = page;
+            // 更新 URL 中的 page 参数（当前页）
+            updateUrlParams(page);
+
+            const containerLD = document.getElementById('moviesContainerLoading');
+            const container = document.getElementById('moviesContainer');
+            const paginationEl = document.getElementById('pagination');
+
+            containerLD.innerHTML = `
+                <div class="col-12 text-center py-5">
+                    <div class="spinner-border text-primary"></div>
+                    <p class="mt-2 text-muted">加载中...</p>
+                </div>
+            `;
+            containerLD.classList.remove('d-none');
+            paginationEl.classList.add('d-none');
+
+            if (scrollToTop) {
+                document.getElementById('moviesContainerLoading').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            const checkedBase = Array.from(document.querySelectorAll('.base-filter-tag:checked')).map(cb => cb.value);
+            const filterTagsParam = checkedBase.join(',');
+
+            // 因为隐藏标签生成时追加了 .cat-filter-tag 类，此处会被完美合并收集发送给后台接口
+            const checkedCat = Array.from(document.querySelectorAll('.cat-filter-tag:checked')).map(cb => cb.value);
+            const tagsParam = checkedCat.join(',');
+
+            const sortOption = document.querySelector('input[name="sortOption"]:checked').value;
+            const [sortBy, orderBy] = sortOption.split('|');
+            const year = document.querySelector('input[name="yearOption"]:checked').value;
+
+            const url = `/api/movies?actor_id=${currentActorId}&filter_tags=${filterTagsParam}&tags=${tagsParam}&sort_by=${sortBy}&order_by=${orderBy}&page=${page}&year=${year}`;
+
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+
+                if (data.success) {
+                    const movies = data.data.movies;
+                    let html = '';
+                    if (!movies || movies.length === 0) {
+                        html = '<div class="col-12 text-center text-muted py-5">暂无影片</div>';
+                    } else {
+                        movies.forEach(movie => {
+                            const coverFixed = `/api/image_proxy?url=${encodeURIComponent(movie.cover_url)}`;
+                            const detailUrl = `/movie/${movie.id}`;
+                            html += `
+                                <div class="col-md-3 mb-4">
+                                    <div class="card movie-card h-100 shadow-sm border-0">
+                                        <a href="${detailUrl}" class="card-link-block" target="_blank">
+                                            <div class="position-relative">
+                                                <img src="${coverFixed}" alt="${movie.number}" onerror="this.src='{{ url_for('static', filename='images/noimage.jpg') }}'">
+                                                <div class="position-absolute top-0 end-0 d-flex gap-1 m-2">
+                                                    ${ movie.new_magnets ? '<span class="badge bg-warning text-dark">新种</span>' : (movie.magnets_count > 0 ? '<span class="badge" style="background-color: #32ad76 !important;">含磁链</span>' : '') }
+                                                    ${ movie.has_cnsub ? '<span class="badge bg-info">中字</span>' : '' }
+                                                </div>
+                                            </div>
+                                            <div class="card-body p-3">
+                                                <h6 class="card-title text-truncate fw-bold" title="${movie.number}">${movie.number}</h6>
+                                                <p class="card-text small text-muted mb-2" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.5; height: 3.0em;" title="${movie.title}">${movie.title}</p>
+                                                <div class="d-flex justify-content-between mt-2">
+                                                    <span class="badge bg-light text-dark border">${ movie.release_date ? movie.release_date : '' }</span>
+                                                    <span class="badge bg-light text-dark border">${ movie.duration ? movie.duration+' 分钟' : '' }</span>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
+                    container.innerHTML = html;
+                    renderPagination(page, movies.length);
+                    paginationEl.classList.remove('d-none');
+                    fadeOut(containerLD);
+
+                } else {
+                    container.innerHTML = `
+                        <div class="col-12 text-center text-danger py-5">
+                            加载失败
+                            <div><button class="btn btn-primary mt-2" onclick="loadMovies(${page})">重试</button></div>
+                        </div>
+                    `;
+                    fadeOut(containerLD);
+                }
+            } catch (e) {
+                container.innerHTML = `
+                    <div class="col-12 text-center text-danger py-5">
+                        加载失败：${e.message}
+                        <div><button class="btn btn-primary mt-2" onclick="loadMovies(${page})">重试</button></div>
+                    </div>
+                `;
+                fadeOut(containerLD);
+            }
+        }
+
+        // ==========================================
+        // 分页渲染
+        // ==========================================
+        function renderPagination(currentPage, loadedCount) {
+            const limit = 24;
+            const paginationUl = document.getElementById('paginationList');
+            paginationUl.innerHTML = '';
+
+            const isLastPage = loadedCount < limit;
+            const prevDisabled = currentPage <= 1 ? 'disabled' : '';
+            paginationUl.innerHTML += `
+                <li class="page-item ${prevDisabled}">
+                    <a class="page-link" href="javascript:void(0)" onclick="if(${currentPage} > 1) loadMovies(${currentPage - 1}, true)">上一页</a>
+                </li>
+            `;
+
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = isLastPage ? currentPage : currentPage + 2;
+
+            for (let i = startPage; i <= endPage; i++) {
+                if (i === currentPage) {
+                    paginationUl.innerHTML += `
+                        <li class="page-item active" aria-current="page">
+                            <span class="page-link">${i}</span>
+                        </li>
+                    `;
+                } else {
+                    paginationUl.innerHTML += `
+                        <li class="page-item">
+                            <a class="page-link" href="javascript:void(0)" onclick="loadMovies(${i}, true)">${i}</a>
+                        </li>
+                    `;
+                }
+            }
+
+            const nextDisabled = isLastPage ? 'disabled' : '';
+            paginationUl.innerHTML += `
+                <li class="page-item ${nextDisabled}">
+                    <a class="page-link" href="javascript:void(0)" onclick="if(!${isLastPage}) loadMovies(${currentPage + 1}, true)">下一页</a>
+                </li>
+            `;
+
+            paginationUl.innerHTML += `
+                <li class="page-item ms-3 d-flex align-items-center">
+                    <input type="number" id="jumpPageInput" class="form-control text-center px-1" style="width: 60px; height: 38px;" value="${currentPage + 1}" min="1">
+                    <button class="btn btn-outline-primary ms-1" style="height: 38px;" onclick="jumpToPage()">跳转</button>
+                </li>
+            `;
+        }
+
+        function jumpToPage() {
+            const inputVal = document.getElementById('jumpPageInput').value;
+            const page = parseInt(inputVal, 10);
+            if (page && page > 0) {
+                loadMovies(page, true);
+            }
+        }
+
+        // ==========================================
+        // 收藏/取消收藏按钮状态渲染与交互
+        // ==========================================
+        function updateCollectButton() {
+            const btn = document.getElementById('btnCollect');
+            if (isCollected) {
+                btn.className = "btn btn-danger btn-sm rounded-pill shadow-sm";
+                btn.innerHTML = "🤍 已收藏";
+            } else {
+                btn.className = "btn btn-outline-danger btn-sm px-3 rounded-pill shadow-sm";
+                btn.innerHTML = "❤️ 收藏";
+            }
+        }
+
+        async function toggleCollect() {
+            const btn = document.getElementById('btnCollect');
+            btn.disabled = true;
+            const action = isCollected ? 'uncollect' : 'collect';
+
+            try {
+                const res = await fetch(`/api/actor/${currentActorId}/collect`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: action })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    isCollected = !isCollected;
+                    updateCollectButton();
+                } else {
+                    alert(data.message || '操作失败');
+                }
+            } catch (e) {
+                alert('网络请求失败：' + e.message);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // ==========================================
+        // 渐隐隐藏元素函数
+        // ==========================================
+        function fadeOut(element, duration = 1000) {
+            if (!element) return;
+
+            element.style.transition = `opacity ${duration}ms ease`;
+            element.style.opacity = '0';
+
+            setTimeout(() => {
+                element.classList.add('d-none');
+                element.style.opacity = '';
+                element.style.transition = '';
+            }, duration);
+        }
+
+        // ==========================================
+        // 【已修改】解析 URL 参数（扩充支持提取 tag_names）
+        // ==========================================
+        function getUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                filter_tags: params.get('filter_tags') || '',
+                tags: params.get('tags') || '',
+                tag_names: params.get('tag_names') || '',   // 🌟 新增：支持隐藏标签中文名反查
+                year: params.get('year') || '',
+                sort: params.get('sort') || '',   // 例如 "release|desc"
+                page: parseInt(params.get('page')) || 1
+            };
+        }
+
+        // ==========================================
+        // 【已修改】同步并更新浏览器 URL（动态追踪当前被勾选的隐藏标签名字）
+        // ==========================================
+        function updateUrlParams(page) {
+            // 收集当前选中的基础标签
+            const checkedBase = Array.from(document.querySelectorAll('.base-filter-tag:checked')).map(cb => cb.value);
+            const filterTags = checkedBase.join(',');
+
+            // 🌟 核心修改：统一收集所有被勾选的分类元素（包含常规和隐藏）
+            const checkedCatElements = Array.from(document.querySelectorAll('.cat-filter-tag:checked'));
+
+            // 这样 tags 和 tagNames 的数量与顺序就绝对一模一样了！
+            const tags = checkedCatElements.map(cb => cb.value).join(',');
+            const tagNames = checkedCatElements.map(cb => cb.getAttribute('data-name') || '').join(',');
+
+            // 年份
+            const yearRadio = document.querySelector('input[name="yearOption"]:checked');
+            const year = yearRadio ? yearRadio.value : '';
+
+            // 排序
+            const sortRadio = document.querySelector('input[name="sortOption"]:checked');
+            const sort = sortRadio ? sortRadio.value : '';
+
+            // 构建查询字符串（忽略空值）
+            const params = new URLSearchParams();
+            if (filterTags) params.set('filter_tags', filterTags);
+            if (tags) params.set('tags', tags);
+            if (tagNames) params.set('tag_names', tagNames); // 写入完美对应的所有名字
+            if (year) params.set('year', year);
+            if (sort) params.set('sort', sort);
+            if (page && page > 1) params.set('page', page);
+
+            const newUrl = window.location.pathname + '?' + params.toString();
+            history.replaceState({}, '', newUrl);
+        }
+
+        // ==========================================
+        // 初始化
+        // ==========================================
+        window.onload = function() {
+            populateYears();
+
+            // 统一的加载动画触发函数
+            const triggerLoadingAndLoad = function() {
+                const containerLD = document.getElementById('moviesContainerLoading');
+                const paginationEl = document.getElementById('pagination');
+                containerLD.innerHTML = `
+                    <div class="col-12 text-center py-5">
+                        <div class="spinner-border text-primary"></div>
+                        <p class="mt-2 text-muted">加载中...</p>
+                    </div>
+                `;
+                containerLD.classList.remove('d-none');
+                paginationEl.classList.add('d-none');
+                debouncedLoadMovies();
+            };
+
+            document.querySelectorAll('.sort-radio').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    triggerLoadingAndLoad();      // 触发搜索
+                });
+            });
+            document.querySelectorAll('.year-radio').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    triggerLoadingAndLoad();
+                });
+            });
+
+            if (initialActorId) {
+                loadActor(initialActorId);
+            }
+        };
+    </script>
+{% endblock %}

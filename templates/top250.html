@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+
+{% block title %}Top250 榜单 - JavDB{% endblock %}
+
+{% block styles %}
+    <style>
+        .movie-card { transition: transform 0.2s; }
+        .movie-card:hover { transform: scale(1.02); }
+        .movie-card img { width: 100%; height: 220px; object-fit: cover; }
+        .filter-section {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
+        }
+        .custom-radio-label {
+            border: 1px solid #dee2e6 !important;
+            background-color: #f8f9fa !important;
+            border-radius: 0.375rem;
+            color: #212529 !important;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .btn-check:not(:checked) + .custom-radio-label:hover {
+            background-color: #e9ecef !important;
+        }
+        .btn-check:checked + .custom-radio-label {
+            background-color: #0d6efd !important;
+            color: #fff !important;
+            border-color: #0d6efd !important;
+        }
+        .btn-check:disabled + .custom-radio-label {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4 text-center">🏆 Top 250</h1>
+
+    <div class="filter-section border">
+        <div class="row g-2">
+            <!-- 类别行 -->
+            <div class="col-12 d-flex align-items-center flex-wrap gap-2">
+                <span class="fw-bold text-muted me-1 small">⭐ 类别：</span>
+
+                <input type="radio" class="btn-check filter-btn" name="filterType" id="t_all" data-type="all" data-val="" checked>
+                <label class="btn btn custom-radio-label btn-sm btn-sm" for="t_all">全部</label>
+
+                <input type="radio" class="btn-check filter-btn" name="filterType" id="t_0" data-type="video_type" data-val="0">
+                <label class="btn btn custom-radio-label btn-sm btn-sm" for="t_0">有码</label>
+
+                <input type="radio" class="btn-check filter-btn" name="filterType" id="t_1" data-type="video_type" data-val="1">
+                <label class="btn btn custom-radio-label btn-sm btn-sm" for="t_1">无码</label>
+
+                <input type="radio" class="btn-check filter-btn" name="filterType" id="t_2" data-type="video_type" data-val="2">
+                <label class="btn btn custom-radio-label btn-sm btn-sm" for="t_2">欧美</label>
+
+                <input type="radio" class="btn-check filter-btn" name="filterType" id="t_3" data-type="video_type" data-val="3">
+                <label class="btn btn custom-radio-label btn-sm btn-sm" for="t_3">FC2</label>
+            </div>
+
+            <!-- 年份行（无“全部”按钮） -->
+            <div class="col-12 d-flex align-items-center flex-wrap gap-2 mt-3">
+                <span class="fw-bold text-muted me-1 small">📅 年份：</span>
+                <div id="yearContainer" class="d-flex flex-wrap gap-2">
+                    <!-- 由 JS 动态生成年份 radio，无“全部”选项 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row" id="moviesContainerLoading"></div>
+    <div class="row" id="moviesContainer"></div>
+
+    <nav aria-label="Page navigation" class="mt-4 d-none" id="pagination">
+        <ul class="pagination justify-content-center mb-0" id="paginationList"></ul>
+    </nav>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        let currentPage = 1;
+
+        // ===== 填充年份按钮（无“全部”） =====
+        function populateYears() {
+            const container = document.getElementById('yearContainer');
+            const currentYear = new Date().getFullYear();
+            let html = '';
+            // 从当前年份循环到 2008，不生成“全部”按钮
+            for (let y = currentYear; y >= 2008; y--) {
+                html += `
+                    <input type="radio" class="btn-check year-radio" name="yearOption" id="year_${y}" value="${y}">
+                    <label class="btn custom-radio-label btn-sm" for="year_${y}">${y}年</label>
+                `;
+            }
+            container.innerHTML = html;
+        }
+
+        // ===== 互斥监听 =====
+        function setupListeners() {
+            // 类别 radio 变化 → 清空年份
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('change', function() {
+                    if (this.checked) {
+                        document.querySelectorAll('.year-radio').forEach(r => r.checked = false);
+                        fetchTop250(1);
+                    }
+                });
+            });
+
+            // 年份 radio 变化 → 清空类别
+            document.querySelectorAll('.year-radio').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    if (this.checked) {
+                        document.querySelectorAll('.filter-btn').forEach(r => r.checked = false);
+                        fetchTop250(1);
+                    }
+                });
+            });
+        }
+
+        // ===== 获取数据 =====
+        async function fetchTop250(page, scrollToTop = false) {
+            currentPage = page;
+
+            const yearRadio = document.querySelector('input[name="yearOption"]:checked');
+            const yearVal = yearRadio ? yearRadio.value : '';
+
+            let reqType = 'all';
+            let typeVal = '';
+
+            if (yearVal) {
+                reqType = 'year';
+                typeVal = yearVal;
+            } else {
+                const activeBtn = document.querySelector('.filter-btn:checked');
+                if (activeBtn) {
+                    reqType = activeBtn.getAttribute('data-type');
+                    typeVal = activeBtn.getAttribute('data-val');
+                }
+            }
+
+            const containerLD = document.getElementById('moviesContainerLoading');
+            const container = document.getElementById('moviesContainer');
+            const paginationEl = document.getElementById('pagination');
+
+            containerLD.innerHTML = '<div class="col-12 text-center py-5"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted">加载中...</p></div>';
+            containerLD.classList.remove('d-none');
+            paginationEl.classList.add('d-none');
+
+            if (scrollToTop) {
+                document.getElementById('moviesContainerLoading').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            try {
+                const res = await fetch(`/api/top250?page=${page}&limit=50&type=${reqType}&type_value=${typeVal}`);
+                const data = await res.json();
+
+                if (!data.success) throw new Error(data.error || '获取数据失败');
+
+                const movies = data.data.movies || [];
+                renderMovieCards(movies);
+
+                if (movies.length > 0) {
+                    renderPagination(page, movies.length);
+                }
+
+                fadeOut(containerLD);
+
+            } catch (err) {
+                // ---- 错误展示带重试按钮 ----
+                container.innerHTML = `
+                    <div class="col-12 text-center text-danger py-5">
+                        加载失败：${err.message}
+                        <div><button class="btn btn-primary mt-2" onclick="fetchTop250(${page})">重试</button></div>
+                    </div>
+                `;
+                fadeOut(containerLD);
+                // 隐藏分页
+                paginationEl.classList.add('d-none');
+            }
+        }
+
+        // ===== 渲染卡片 =====
+        function renderMovieCards(movies) {
+            const container = document.getElementById('moviesContainer');
+            container.innerHTML = '';
+
+            if (movies.length === 0) {
+                container.innerHTML = '<div class="col-12 text-center text-muted py-5">暂无榜单数据</div>';
+                return;
+            }
+
+            movies.forEach(movie => {
+                const coverFixed = `/api/image_proxy?url=${encodeURIComponent(movie.cover_url)}`;
+                const detailUrl = `/movie/${movie.id}`;
+
+                container.innerHTML += `
+                    <div class="col-md-3 mb-4">
+                        <div class="card movie-card h-100 shadow-sm border-0">
+                            <a href="${detailUrl}" class="card-link-block" target="_blank">
+                                <div class="position-relative">
+                                    <img src="${coverFixed}" alt="${movie.number}" onerror="this.src='{{ url_for('static', filename='images/noimage.jpg') }}'">
+                                    <div class="position-absolute top-0 start-0 m-2">
+                                        <span class="badge bg-danger fs-6 border border-white">TOP ${movie.ranking}</span>
+                                    </div>
+                                    <div class="position-absolute top-0 end-0 d-flex gap-1 m-2">
+                                        ${ movie.new_magnets ? '<span class="badge bg-warning text-dark">新种</span>' : (movie.magnets_count > 0 ? '<span class="badge" style="background-color: #32ad76 !important;">含磁链</span>' : '') }
+                                        ${ movie.has_cnsub ? '<span class="badge bg-info">中字</span>' : '' }
+                                    </div>
+                                </div>
+                                <div class="card-body p-3">
+                                    <h6 class="card-title text-truncate fw-bold" title="${movie.number}">${movie.number}</h6>
+                                    <p class="card-text small text-muted mb-2" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.5; height: 3.0em;" title="${movie.title}">${movie.title}</p>
+                                    <div class="d-flex justify-content-between mt-2">
+                                        <span class="badge bg-light text-dark border">${ movie.release_date ? movie.release_date : '' }</span>
+                                        <span class="badge bg-light text-dark border">${ movie.duration ? movie.duration+' 分钟' : '' }</span>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // ===== 分页 =====
+        function renderPagination(currentPage, loadedCount) {
+            const limit = 50;
+            const maxPages = 5;
+            const paginationUl = document.getElementById('paginationList');
+            paginationUl.innerHTML = '';
+
+            const isLastPage = loadedCount < limit || currentPage >= maxPages;
+            const prevDisabled = currentPage <= 1 ? 'disabled' : '';
+
+            paginationUl.innerHTML += `
+                <li class="page-item ${prevDisabled}">
+                    <a class="page-link" href="javascript:void(0)" onclick="if(${currentPage} > 1) fetchTop250(${currentPage - 1}, true)">上一页</a>
+                </li>
+            `;
+
+            for (let i = 1; i <= maxPages; i++) {
+                if (i === currentPage) {
+                    paginationUl.innerHTML += `<li class="page-item active"><span class="page-link">${i}</span></li>`;
+                } else {
+                    paginationUl.innerHTML += `<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="fetchTop250(${i}, true)">${i}</a></li>`;
+                }
+            }
+
+            const nextDisabled = isLastPage ? 'disabled' : '';
+            paginationUl.innerHTML += `
+                <li class="page-item ${nextDisabled}">
+                    <a class="page-link" href="javascript:void(0)" onclick="if(!${isLastPage}) fetchTop250(${currentPage + 1}, true)">下一页</a>
+                </li>
+            `;
+
+            document.getElementById('pagination').classList.remove('d-none');
+        }
+
+        // ===== 渐隐工具 =====
+        function fadeOut(element, duration = 1000) {
+            if (!element) return;
+            element.style.transition = `opacity ${duration}ms ease`;
+            element.style.opacity = '0';
+            setTimeout(() => {
+                element.classList.add('d-none');
+                element.style.opacity = '';
+                element.style.transition = '';
+            }, duration);
+        }
+
+        // ===== 初始化 =====
+        window.onload = function() {
+            populateYears();       // 生成年份按钮（无“全部”）
+            setupListeners();      // 绑定互斥事件
+            fetchTop250(1);        // 默认类别“全部”，年份无选中
+        };
+    </script>
+{% endblock %}
