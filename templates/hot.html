@@ -4,9 +4,17 @@
 
 {% block styles %}
     <style>
-        .movie-card { transition: transform 0.2s; }
-        .movie-card:hover { transform: scale(1.02); }
-        .movie-card img { width: 100%; height: 220px; object-fit: cover; }
+        .movie-card {
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            transition: transform .25s ease, box-shadow .25s ease;
+        }
+        .movie-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-3);
+        }
+        .movie-card img { width: 100%; height: 220px; object-fit: cover; transition: transform .4s ease; }
+        .movie-card:hover img { transform: scale(1.04); }
         .filter-section {
             background: #fff;
             padding: 15px;
@@ -14,6 +22,59 @@
             margin-bottom: 20px;
             box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
         }
+
+                /* ===== 筛选按钮：未选中 ===== */
+        .custom-radio-label {
+            border: 1px solid #e5e7eb !important;
+            border-radius: 0.375rem !important;
+            padding: 0.375rem 0.75rem;
+            background-color: #ffffff !important;
+            color: #4b5563 !important;
+            font-weight: 500;
+            margin-bottom: 4px;
+            transition: background-color 0.22s ease, color 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease, transform 0.22s ease;
+            cursor: pointer;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+        }
+        /* ===== 未选中悬停 ===== */
+        .btn-check:not(:checked) + .custom-radio-label:hover {
+            background-color: #f5f6ff !important;
+            border-color: #c7d2fe !important;
+            color: #4f46e5 !important;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.12);
+        }
+        /* ===== 选中 ===== */
+        .btn-check:checked + .custom-radio-label {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            color: #fff !important;
+            border-color: transparent !important;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+        }
+        /* ===== 选中悬停 ===== */
+        .btn-check:checked + .custom-radio-label:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5);
+        }
+        /* ===== 按下 ===== */
+        .custom-radio-label:active {
+            transform: scale(0.97);
+        }
+
+        /* 👇 彻底去除点击/聚焦时的原生蓝色外发光 */
+        .btn-check:focus + .custom-radio-label,
+        .btn-check:active + .custom-radio-label {
+            outline: none !important;
+            box-shadow: none !important;
+        }
+        .btn-check:checked:focus + .custom-radio-label {
+            outline: none !important;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35) !important;
+        }
+        
+        /* 全局覆盖原本的蓝色 Spinner */
+        .text-primary { color: #667eea !important; }
     </style>
 {% endblock %}
 
@@ -25,16 +86,16 @@
         <!-- 第一行：榜单周期 -->
         <div class="row align-items-center g-2 mb-2 pb-2 border-bottom">
             <div class="col-12 d-flex align-items-center flex-wrap gap-2">
-                <span class="fw-bold text-danger me-1 small">🏆 榜单：</span>
+                <span class="fw-bold text-muted me-1 small">🏆 榜单：</span>
 
                 <input type="radio" class="btn-check period-btn" name="periodType" id="p_daily" value="daily" checked>
-                <label class="btn btn-outline-danger btn-sm" for="p_daily">日榜</label>
+                <label class="btn custom-radio-label btn-sm" for="p_daily">日榜</label>
 
                 <input type="radio" class="btn-check period-btn" name="periodType" id="p_weekly" value="weekly">
-                <label class="btn btn-outline-danger btn-sm" for="p_weekly">周榜</label>
+                <label class="btn custom-radio-label btn-sm" for="p_weekly">周榜</label>
 
                 <input type="radio" class="btn-check period-btn" name="periodType" id="p_monthly" value="monthly">
-                <label class="btn btn-outline-danger btn-sm" for="p_monthly">月榜</label>
+                <label class="btn custom-radio-label btn-sm" for="p_monthly">月榜</label>
             </div>
         </div>
 
@@ -44,10 +105,10 @@
                 <span class="fw-bold text-muted me-1 small">⚡ 筛选：</span>
 
                 <input type="radio" class="btn-check filter-btn" name="filterBy" id="f_all" value="all">
-                <label class="btn btn-outline-primary btn-sm" for="f_all">全部</label>
+                <label class="btn custom-radio-label btn-sm" for="f_all">全部</label>
 
                 <input type="radio" class="btn-check filter-btn" name="filterBy" id="f_high_score" value="high_score" checked>
-                <label class="btn btn-outline-primary btn-sm" for="f_high_score">高评价</label>
+                <label class="btn custom-radio-label btn-sm" for="f_high_score">高评价</label>
             </div>
         </div>
     </div>
@@ -109,7 +170,7 @@
             }
 
             movies.forEach(movie => {
-                const coverFixed = `/api/image_proxy?url=${encodeURIComponent(movie.cover_url)}`;
+                const coverFixed = `/api/image?url=${encodeURIComponent(movie.cover_url)}`;
                 const detailUrl = `/movie/${movie.id}`;
 
                 container.innerHTML += `

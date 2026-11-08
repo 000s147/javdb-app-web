@@ -7,8 +7,198 @@
         body { background-color: #f4f6f9; }
         .page-header { background: #ffffff; border-radius: 16px; padding: 1.5rem 2rem; box-shadow: 0 4px 12px rgba(0,0,0,0.02); border: 1px solid rgba(0,0,0,0.04); }
         .director-card { transition: all 0.25s; border-radius: 14px; background-color: #ffffff; border: 1px solid rgba(0,0,0,0.06); overflow: hidden; height: 100%; text-align: center;}
-        .director-card:hover { transform: translateY(-3px); box-shadow: 0 12px 20px rgba(13,110,253,0.08); border-color: rgba(13,110,253,0.25); }
+        .director-card:hover { 
+            transform: translateY(-4px); 
+            box-shadow: 0 12px 24px rgba(102, 126, 234, 0.15); /* 紫蓝色阴影 */
+            border-color: #c7d2fe; /* 淡紫边框 */
+        }
         .director-card-link { display: block; text-decoration: none; color: inherit; padding: 1.5rem; }
+
+        /* ===== 分页容器 ===== */
+        #pagination {
+            margin-top: 2rem !important;
+        }
+
+        #paginationList {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px;
+            align-items: center;
+        }
+
+        #paginationList .page-item {
+            margin: 0;
+        }
+
+        #paginationList .page-item .page-link {
+            min-width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 12px;
+            margin-left: 0 !important;
+            border: 1px solid #e9ecef;
+            border-radius: 10px !important;
+            background: #fff;
+            color: #495057;
+            font-weight: 500;
+            font-size: 0.9rem;
+            line-height: 1;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+            text-decoration: none;
+        }
+
+        #paginationList .page-item .page-link:hover {
+            background: #eef2ff;
+            border-color: #c7d2fe;
+            color: #4f46e5;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.12);
+        }
+
+        #paginationList .page-item.active .page-link {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+        }
+
+        #paginationList .page-item.disabled .page-link {
+            background: #f8f9fa;
+            border-color: #f1f3f5;
+            color: #adb5bd;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        #paginationList .page-item.disabled .page-link:hover {
+            background: #f8f9fa;
+            border-color: #f1f3f5;
+            color: #adb5bd;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* ===== 跳页区 ===== */
+        #paginationList .jump-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: 10px;
+        }
+
+        #jumpPageInput {
+            width: 64px;
+            height: 40px;
+            border-radius: 10px !important;
+            border: 1px solid #e9ecef !important;
+            text-align: center;
+            font-weight: 500;
+            color: #495057;
+            transition: all 0.2s;
+            padding: 0 !important;
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+
+        #jumpPageInput::-webkit-outer-spin-button,
+        #jumpPageInput::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        #jumpPageInput:focus {
+            border-color: #a5b4fc !important;
+            box-shadow: 0 0 0 3px rgba(165, 180, 252, 0.25);
+            outline: none;
+        }
+
+        #paginationList .jump-btn {
+            height: 40px;
+            padding: 0 16px;
+            border-radius: 10px !important;
+            border: 1px solid #c7d2fe;
+            background: #fff;
+            color: #4f46e5;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            margin-left: 0 !important;
+        }
+
+        #paginationList .jump-btn:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* ===== 小屏适配 ===== */
+        @media (max-width: 576px) {
+            #paginationList { gap: 4px; }
+            #paginationList .page-item .page-link {
+                min-width: 34px;
+                height: 34px;
+                padding: 0 8px;
+                font-size: 0.82rem;
+            }
+            #jumpPageInput,
+            #paginationList .jump-btn {
+                height: 34px;
+            }
+            #jumpPageInput { width: 54px; }
+        }
+
+                /* ===== 刷新按钮（品牌渐变） ===== */
+        .btn-brand {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            border: none !important;
+            color: #fff !important;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-brand:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.5);
+            color: #fff !important;
+        }
+        .btn-brand:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+        }
+
+        /* ===== 取消收藏按钮（浅红底，悬停变实心红） ===== */
+        .btn-danger-soft {
+            background: #fef2f2 !important;
+            border: 1px solid #fecaca !important;
+            color: #dc2626 !important;
+            font-weight: 500;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-danger-soft:hover {
+            background: #dc2626 !important;
+            border-color: #dc2626 !important;
+            color: #fff !important;
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+            transform: translateY(-1px);
+        }
+
+        /* ===== 导演文字强调色 ===== */
+        .director-text {
+            color: #4f46e5 !important; /* 品牌紫蓝 */
+            font-weight: 700;
+            transition: color 0.2s;
+        }
+        
+        /* 全局覆盖原本的蓝色 Spinner */
+        .text-primary { color: #667eea !important; }
+
     </style>
 {% endblock %}
 
@@ -18,7 +208,7 @@
         <h1 class="h4 mb-1 fw-bold text-dark">⭐ 收藏的导演</h1>
         <p class="text-muted small mb-0">您收藏的所有导演列表</p>
     </div>
-    <button class="btn btn-outline-primary btn-sm" onclick="loadDirectors(1)">🔄 刷新</button>
+    <button class="btn btn-brand btn-sm" onclick="loadDirectors(1)">🔄 刷新</button>
 </div>
 
 <div class="row" id="directorContainer">
@@ -53,6 +243,7 @@
 
             if (directorsList.length === 0) {
                 container.innerHTML = `<div class="col-12 text-center text-muted py-5">暂无收藏的导演</div>`;
+                renderPagination(page, 0);   // ← 空数据也渲染分页
                 return;
             }
 
@@ -70,12 +261,12 @@
                     <div class="col-xl-3 col-md-4 col-sm-6 mb-4">
                         <div class="card director-card">
                             <a href="/director/${item.id}" class="director-card-link" target="_blank">
-                                <h5 class="fw-bold text-primary mb-2 text-truncate" title="${item.name}">${item.name}</h5>
+                                <h5 class="director-text mb-2 text-truncate" title="${item.name}" style="font-size: 1.1rem;">${item.name}</h5>
                                 <span class="badge bg-light text-dark border">${typeStr}</span>
                                 <span class="badge bg-light text-dark border">${item.videos_count || 0} 部影片</span>
                             </a>
                             <div class="card-footer bg-white border-0 py-2">
-                                <button class="btn btn-sm btn-outline-danger w-100" onclick="uncollectDirector('${item.id}', event)">取消收藏</button>
+                                <button class="btn btn-sm btn-danger-soft w-100" onclick="uncollectDirector('${item.id}', event)">取消收藏</button>
                             </div>
                         </div>
                     </div>
@@ -85,6 +276,7 @@
             renderPagination(page, directorsList.length);
         } catch (e) {
             container.innerHTML = `<div class="col-12 text-center text-danger py-5">异常：${e.message}</div>`;
+            paginationEl.classList.add('d-none');   // ← 补上
         }
     }
 
@@ -111,19 +303,84 @@
     function renderPagination(page, loadedCount) {
         const paginationUl = document.getElementById('paginationList');
         paginationUl.innerHTML = '';
-        if (loadedCount === 0 && page === 1) return;
 
+        // 本页不足 limit(30) 条，视为最后一页
         const isLastPage = loadedCount < limit;
+
+        // 首页
         paginationUl.innerHTML += `
             <li class="page-item ${page <= 1 ? 'disabled' : ''}">
-                <a class="page-link" href="javascript:void(0)" onclick="loadDirectors(${page - 1})">上一页</a>
-            </li>
-            <li class="page-item active"><span class="page-link">${page}</span></li>
-            <li class="page-item ${isLastPage ? 'disabled' : ''}">
-                <a class="page-link" href="javascript:void(0)" onclick="loadDirectors(${page + 1})">下一页</a>
+                <a class="page-link" href="javascript:void(0)"
+                onclick="if(${page} > 1) loadDirectors(1)" title="首页">«</a>
             </li>
         `;
+
+        // 上一页（加 if 守卫，page=1 时不会请求第 0 页）
+        paginationUl.innerHTML += `
+            <li class="page-item ${page <= 1 ? 'disabled' : ''}">
+                <a class="page-link" href="javascript:void(0)"
+                onclick="if(${page} > 1) loadDirectors(${page - 1})" title="上一页">‹</a>
+            </li>
+        `;
+
+        // 页码窗口
+        const startPage = Math.max(1, page - 2);
+        const endPage = isLastPage ? page : page + 2;
+
+        // 左省略号
+        if (startPage > 1) {
+            paginationUl.innerHTML += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            if (i === page) {
+                paginationUl.innerHTML += `<li class="page-item active"><span class="page-link">${i}</span></li>`;
+            } else {
+                paginationUl.innerHTML += `
+                    <li class="page-item">
+                        <a class="page-link" href="javascript:void(0)" onclick="loadDirectors(${i})">${i}</a>
+                    </li>
+                `;
+            }
+        }
+
+        // 右省略号：仅当不是最后一页
+        if (!isLastPage) {
+            paginationUl.innerHTML += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+        }
+
+        // 下一页
+        paginationUl.innerHTML += `
+            <li class="page-item ${isLastPage ? 'disabled' : ''}">
+                <a class="page-link" href="javascript:void(0)"
+                onclick="if(!${isLastPage}) loadDirectors(${page + 1})" title="下一页">›</a>
+            </li>
+        `;
+
+        // 跳页
+        paginationUl.innerHTML += `
+            <li class="jump-wrap">
+                <input type="number" id="jumpPageInput" value="${page + 1}" min="1" placeholder="页码">
+                <button class="jump-btn" onclick="jumpToPage()">跳转</button>
+            </li>
+        `;
+
         document.getElementById('pagination').classList.remove('d-none');
+
+        // 跳页输入框绑定回车
+        const jumpInput = paginationUl.querySelector('#jumpPageInput');
+        if (jumpInput) {
+            jumpInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') jumpToPage();
+            });
+        }
+    }
+
+    // 新增：跳页函数（原文件没有）
+    function jumpToPage() {
+        const val = document.getElementById('jumpPageInput').value;
+        const p = parseInt(val, 10);
+        if (p && p > 0) loadDirectors(p);
     }
 
     document.addEventListener('DOMContentLoaded', () => loadDirectors(1));

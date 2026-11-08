@@ -4,9 +4,17 @@
 
 {% block styles %}
     <style>
-        .movie-card { transition: transform 0.2s; }
-        .movie-card:hover { transform: scale(1.02); }
-        .movie-card img { width: 100%; height: 220px; object-fit: cover; }
+        .movie-card {
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            transition: transform .25s ease, box-shadow .25s ease;
+        }
+        .movie-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-3);
+        }
+        .movie-card img { width: 100%; height: 220px; object-fit: cover; transition: transform .4s ease; }
+        .movie-card:hover img { transform: scale(1.04); }
         .filter-section {
             background: #fff;
             padding: 15px;
@@ -14,25 +22,207 @@
             margin-bottom: 20px;
             box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
         }
+                /* ===== 筛选按钮：未选中 ===== */
         .custom-radio-label {
-            border: 1px solid #dee2e6 !important;
-            background-color: #f8f9fa !important;
-            border-radius: 0.375rem;
-            color: #212529 !important;
-            transition: all 0.2s ease;
+            border: 1px solid #e5e7eb !important;
+            border-radius: 0.375rem !important;
+            padding: 0.375rem 0.75rem;
+            background-color: #ffffff !important;
+            color: #4b5563 !important;
+            font-weight: 500;
+            margin-bottom: 4px;
+            transition: background-color 0.22s ease, color 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease, transform 0.22s ease;
             cursor: pointer;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
         }
+        /* ===== 未选中悬停 ===== */
         .btn-check:not(:checked) + .custom-radio-label:hover {
-            background-color: #e9ecef !important;
+            background-color: #f5f6ff !important;
+            border-color: #c7d2fe !important;
+            color: #4f46e5 !important;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.12);
         }
+        /* ===== 选中 ===== */
         .btn-check:checked + .custom-radio-label {
-            background-color: #0d6efd !important;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
             color: #fff !important;
-            border-color: #0d6efd !important;
+            border-color: transparent !important;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
         }
+        /* ===== 选中悬停 ===== */
+        .btn-check:checked + .custom-radio-label:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5);
+        }
+        /* ===== 按下 ===== */
+        .custom-radio-label:active {
+            transform: scale(0.97);
+        }
+        /* ===== 禁用状态 ===== */
         .btn-check:disabled + .custom-radio-label {
             opacity: 0.5;
             pointer-events: none;
+            background: #f3f4f6 !important;
+            border-color: #e5e7eb !important;
+            color: #9ca3af !important;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+
+        /* 👇 彻底去除点击/聚焦时的原生蓝色外发光 */
+        .btn-check:focus + .custom-radio-label,
+        .btn-check:active + .custom-radio-label {
+            outline: none !important;
+            box-shadow: none !important;
+        }
+        .btn-check:checked:focus + .custom-radio-label {
+            outline: none !important;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35) !important;
+        }
+        
+        /* 全局覆盖原本的蓝色 Spinner */
+        .text-primary { color: #667eea !important; }
+
+        /* ===== 分页容器 ===== */
+        #pagination {
+            margin-top: 2rem !important;
+        }
+
+        #paginationList {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px;
+            align-items: center;
+        }
+
+        #paginationList .page-item {
+            margin: 0;
+        }
+
+        #paginationList .page-item .page-link {
+            min-width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 12px;
+            margin-left: 0 !important;
+            border: 1px solid #e9ecef;
+            border-radius: 10px !important;
+            background: #fff;
+            color: #495057;
+            font-weight: 500;
+            font-size: 0.9rem;
+            line-height: 1;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+            text-decoration: none;
+        }
+
+        #paginationList .page-item .page-link:hover {
+            background: #eef2ff;
+            border-color: #c7d2fe;
+            color: #4f46e5;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.12);
+        }
+
+        #paginationList .page-item.active .page-link {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+        }
+
+        #paginationList .page-item.disabled .page-link {
+            background: #f8f9fa;
+            border-color: #f1f3f5;
+            color: #adb5bd;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        #paginationList .page-item.disabled .page-link:hover {
+            background: #f8f9fa;
+            border-color: #f1f3f5;
+            color: #adb5bd;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* ===== 跳页区 ===== */
+        #paginationList .jump-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: 10px;
+        }
+
+        #jumpPageInput {
+            width: 64px;
+            height: 40px;
+            border-radius: 10px !important;
+            border: 1px solid #e9ecef !important;
+            text-align: center;
+            font-weight: 500;
+            color: #495057;
+            transition: all 0.2s;
+            padding: 0 !important;
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+
+        #jumpPageInput::-webkit-outer-spin-button,
+        #jumpPageInput::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        #jumpPageInput:focus {
+            border-color: #a5b4fc !important;
+            box-shadow: 0 0 0 3px rgba(165, 180, 252, 0.25);
+            outline: none;
+        }
+
+        #paginationList .jump-btn {
+            height: 40px;
+            padding: 0 16px;
+            border-radius: 10px !important;
+            border: 1px solid #c7d2fe;
+            background: #fff;
+            color: #4f46e5;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            margin-left: 0 !important;
+        }
+
+        #paginationList .jump-btn:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* ===== 小屏适配 ===== */
+        @media (max-width: 576px) {
+            #paginationList { gap: 4px; }
+            #paginationList .page-item .page-link {
+                min-width: 34px;
+                height: 34px;
+                padding: 0 8px;
+                font-size: 0.82rem;
+            }
+            #jumpPageInput,
+            #paginationList .jump-btn {
+                height: 34px;
+            }
+            #jumpPageInput { width: 54px; }
         }
     </style>
 {% endblock %}
@@ -47,19 +237,19 @@
                 <span class="fw-bold text-muted me-1 small">⭐ 类别：</span>
 
                 <input type="radio" class="btn-check filter-btn" name="filterType" id="t_all" data-type="all" data-val="" checked>
-                <label class="btn btn custom-radio-label btn-sm btn-sm" for="t_all">全部</label>
+                <label class="btn custom-radio-label btn-sm" for="t_all">全部</label>
 
                 <input type="radio" class="btn-check filter-btn" name="filterType" id="t_0" data-type="video_type" data-val="0">
-                <label class="btn btn custom-radio-label btn-sm btn-sm" for="t_0">有码</label>
+                <label class="btn custom-radio-label btn-sm" for="t_0">有码</label>
 
                 <input type="radio" class="btn-check filter-btn" name="filterType" id="t_1" data-type="video_type" data-val="1">
-                <label class="btn btn custom-radio-label btn-sm btn-sm" for="t_1">无码</label>
+                <label class="btn custom-radio-label btn-sm" for="t_1">无码</label>
 
                 <input type="radio" class="btn-check filter-btn" name="filterType" id="t_2" data-type="video_type" data-val="2">
-                <label class="btn btn custom-radio-label btn-sm btn-sm" for="t_2">欧美</label>
+                <label class="btn custom-radio-label btn-sm" for="t_2">欧美</label>
 
                 <input type="radio" class="btn-check filter-btn" name="filterType" id="t_3" data-type="video_type" data-val="3">
-                <label class="btn btn custom-radio-label btn-sm btn-sm" for="t_3">FC2</label>
+                <label class="btn custom-radio-label btn-sm" for="t_3">FC2</label>
             </div>
 
             <!-- 年份行（无“全部”按钮） -->
@@ -164,9 +354,8 @@
                 const movies = data.data.movies || [];
                 renderMovieCards(movies);
 
-                if (movies.length > 0) {
-                    renderPagination(page, movies.length);
-                }
+                // 无条件渲染分页
+                renderPagination(page, movies.length);
 
                 fadeOut(containerLD);
 
@@ -195,7 +384,7 @@
             }
 
             movies.forEach(movie => {
-                const coverFixed = `/api/image_proxy?url=${encodeURIComponent(movie.cover_url)}`;
+                const coverFixed = `/api/image?url=${encodeURIComponent(movie.cover_url)}`;
                 const detailUrl = `/movie/${movie.id}`;
 
                 container.innerHTML += `
@@ -234,31 +423,84 @@
             const paginationUl = document.getElementById('paginationList');
             paginationUl.innerHTML = '';
 
-            const isLastPage = loadedCount < limit || currentPage >= maxPages;
-            const prevDisabled = currentPage <= 1 ? 'disabled' : '';
+            // 已知总页数（Top 250 = 50 × 5 = 250），两种判据任一成立即视为最后
+            const isLastPage = currentPage >= maxPages || loadedCount < limit;
 
+            // 首页
             paginationUl.innerHTML += `
-                <li class="page-item ${prevDisabled}">
-                    <a class="page-link" href="javascript:void(0)" onclick="if(${currentPage} > 1) fetchTop250(${currentPage - 1}, true)">上一页</a>
+                <li class="page-item ${currentPage <= 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="javascript:void(0)"
+                    onclick="if(${currentPage} > 1) fetchTop250(1, true)" title="首页">«</a>
                 </li>
             `;
 
+            // 上一页
+            paginationUl.innerHTML += `
+                <li class="page-item ${currentPage <= 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="javascript:void(0)"
+                    onclick="if(${currentPage} > 1) fetchTop250(${currentPage - 1}, true)" title="上一页">‹</a>
+                </li>
+            `;
+
+            // 页码窗口（5 页以内全显示，不需要省略号）
             for (let i = 1; i <= maxPages; i++) {
                 if (i === currentPage) {
                     paginationUl.innerHTML += `<li class="page-item active"><span class="page-link">${i}</span></li>`;
                 } else {
-                    paginationUl.innerHTML += `<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="fetchTop250(${i}, true)">${i}</a></li>`;
+                    paginationUl.innerHTML += `
+                        <li class="page-item">
+                            <a class="page-link" href="javascript:void(0)" onclick="fetchTop250(${i}, true)">${i}</a>
+                        </li>
+                    `;
                 }
             }
 
-            const nextDisabled = isLastPage ? 'disabled' : '';
+            // 下一页
             paginationUl.innerHTML += `
-                <li class="page-item ${nextDisabled}">
-                    <a class="page-link" href="javascript:void(0)" onclick="if(!${isLastPage}) fetchTop250(${currentPage + 1}, true)">下一页</a>
+                <li class="page-item ${isLastPage ? 'disabled' : ''}">
+                    <a class="page-link" href="javascript:void(0)"
+                    onclick="if(!${isLastPage}) fetchTop250(${currentPage + 1}, true)" title="下一页">›</a>
+                </li>
+            `;
+
+            // 尾页（Top 250 总数固定 5 页，可以直接跳）
+            paginationUl.innerHTML += `
+                <li class="page-item ${isLastPage ? 'disabled' : ''}">
+                    <a class="page-link" href="javascript:void(0)"
+                    onclick="if(!${isLastPage}) fetchTop250(${maxPages}, true)" title="尾页">»</a>
+                </li>
+            `;
+
+            // 跳页
+            paginationUl.innerHTML += `
+                <li class="jump-wrap">
+                    <input type="number" id="jumpPageInput" value="${currentPage + 1 > maxPages ? maxPages : currentPage + 1}" min="1" max="${maxPages}" placeholder="页码">
+                    <button class="jump-btn" onclick="jumpToPage()">跳转</button>
                 </li>
             `;
 
             document.getElementById('pagination').classList.remove('d-none');
+
+            // 跳页输入框绑定回车
+            const jumpInput = paginationUl.querySelector('#jumpPageInput');
+            if (jumpInput) {
+                jumpInput.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter') jumpToPage();
+                });
+            }
+        }
+
+        function jumpToPage() {
+            const val = document.getElementById('jumpPageInput').value;
+            const p = parseInt(val, 10);
+            if (!p || p <= 0) return;
+            // 只有 5 页，超出范围时提示并回填
+            if (p > 5) {
+                alert('Top 250 榜单最多只有 5 页');
+                document.getElementById('jumpPageInput').value = 5;
+                return;
+            }
+            fetchTop250(p, true);
         }
 
         // ===== 渐隐工具 =====

@@ -29,9 +29,10 @@
             flex-direction: column;
             height: 100%;
         }
+        /* ===== 卡片悬浮特效 ===== */
         .list-card:hover {
-            box-shadow: 0 12px 20px rgba(13, 110, 253, 0.08) !important;
-            border-color: rgba(13, 110, 253, 0.25) !important;
+            box-shadow: 0 12px 24px rgba(102, 126, 234, 0.15) !important;
+            border-color: #c7d2fe !important;
         }
 
         /* 卡片内的主体点击跳转热区 */
@@ -46,7 +47,7 @@
             color: inherit;
         }
 
-        /* 精致的圆形文件夹图标容器 */
+        /* ===== 精致的文件夹图标容器 ===== */
         .icon-avatar {
             width: 48px;
             height: 48px;
@@ -55,8 +56,8 @@
             justify-content: center;
             border-radius: 10px;
             font-size: 1.4rem;
-            background: #e7f1ff;
-            color: #0d6efd;
+            background: #f5f6ff; /* 淡紫底 */
+            color: #4f46e5; /* 品牌紫字 */
             transition: all 0.25s ease;
         }
 
@@ -80,15 +81,16 @@
             gap: 4px;
             border: 1px solid transparent !important;
         }
+        /* ===== 重命名按钮（悬停变紫） ===== */
         .btn-rename-flat {
             color: #495057 !important;
             background-color: #fff !important;
             border-color: #dee2e6 !important;
         }
         .btn-rename-flat:hover {
-            color: #0d6efd !important;
-            background-color: #f1f3f5 !important;
-            border-color: #0d6efd !important;
+            color: #4f46e5 !important;
+            background-color: #f5f6ff !important;
+            border-color: #c7d2fe !important;
         }
         .btn-delete-flat {
             color: #dc3545 !important;
@@ -119,24 +121,55 @@
         .toast-container {
             z-index: 1090;
         }
-        /* ========== 排序按钮组样式（与 list_home 统一） ========== */
+        /* ===== 排序按钮：未选中 ===== */
         .custom-radio-label {
-            border: 1px solid #dee2e6 !important;
-            background-color: #f8f9fa !important;
-            color: #212529 !important;
-            border-radius: 0.375rem;
-            transition: all 0.2s ease;
-            cursor: pointer;
+            border: 1px solid #e5e7eb !important;
+            border-radius: 0.375rem !important;
             padding: 0.375rem 0.75rem;
+            background-color: #ffffff !important;
+            color: #4b5563 !important;
+            font-weight: 500;
+            margin-bottom: 4px;
+            transition: background-color 0.22s ease, color 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease, transform 0.22s ease;
+            cursor: pointer;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
             font-size: 0.875rem;
         }
+        /* ===== 未选中悬停 ===== */
         .btn-check:not(:checked) + .custom-radio-label:hover {
-            background-color: #e9ecef !important;
+            background-color: #f5f6ff !important;
+            border-color: #c7d2fe !important;
+            color: #4f46e5 !important;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.12);
         }
+        /* ===== 选中 ===== */
         .btn-check:checked + .custom-radio-label {
-            background-color: #0d6efd !important;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
             color: #fff !important;
-            border-color: #0d6efd !important;
+            border-color: transparent !important;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+        }
+        /* ===== 选中悬停 ===== */
+        .btn-check:checked + .custom-radio-label:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5);
+        }
+        /* ===== 按下 ===== */
+        .custom-radio-label:active {
+            transform: scale(0.97);
+        }
+
+        /* 👇 彻底去除点击/聚焦时的原生蓝色外发光 */
+        .btn-check:focus + .custom-radio-label,
+        .btn-check:active + .custom-radio-label {
+            outline: none !important;
+            box-shadow: none !important;
+        }
+        .btn-check:checked:focus + .custom-radio-label {
+            outline: none !important;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35) !important;
         }
         .sort-group {
             display: flex;
@@ -147,6 +180,169 @@
         .sort-group .btn {
             margin: 0;
         }
+
+        /* ===== 分页容器（覆盖原有 .pagination 样式） ===== */
+        #pagination {
+            margin-top: 2rem !important;
+        }
+
+        #paginationList {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px;
+            align-items: center;
+        }
+
+        #paginationList .page-item {
+            margin: 0;
+        }
+
+        #paginationList .page-item .page-link {
+            min-width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 12px;
+            margin-left: 0 !important;
+            border: 1px solid #e9ecef;
+            border-radius: 10px !important;
+            background: #fff;
+            color: #495057;
+            font-weight: 500;
+            font-size: 0.9rem;
+            line-height: 1;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+            text-decoration: none;
+        }
+
+        #paginationList .page-item .page-link:hover {
+            background: #eef2ff;
+            border-color: #c7d2fe;
+            color: #4f46e5;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.12);
+        }
+
+        #paginationList .page-item.active .page-link {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+        }
+
+        #paginationList .page-item.disabled .page-link {
+            background: #f8f9fa;
+            border-color: #f1f3f5;
+            color: #adb5bd;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        #paginationList .page-item.disabled .page-link:hover {
+            background: #f8f9fa;
+            border-color: #f1f3f5;
+            color: #adb5bd;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* ===== 跳页区 ===== */
+        #paginationList .jump-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: 10px;
+        }
+
+        #jumpPageInput {
+            width: 64px;
+            height: 40px;
+            border-radius: 10px !important;
+            border: 1px solid #e9ecef !important;
+            text-align: center;
+            font-weight: 500;
+            color: #495057;
+            transition: all 0.2s;
+            padding: 0 !important;
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+
+        #jumpPageInput::-webkit-outer-spin-button,
+        #jumpPageInput::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        #jumpPageInput:focus {
+            border-color: #a5b4fc !important;
+            box-shadow: 0 0 0 3px rgba(165, 180, 252, 0.25);
+            outline: none;
+        }
+
+        #paginationList .jump-btn {
+            height: 40px;
+            padding: 0 16px;
+            border-radius: 10px !important;
+            border: 1px solid #c7d2fe;
+            background: #fff;
+            color: #4f46e5;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            margin-left: 0 !important;
+        }
+
+        #paginationList .jump-btn:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* ===== 小屏适配 ===== */
+        @media (max-width: 576px) {
+            #paginationList { gap: 4px; }
+            #paginationList .page-item .page-link {
+                min-width: 34px;
+                height: 34px;
+                padding: 0 8px;
+                font-size: 0.82rem;
+            }
+            #jumpPageInput,
+            #paginationList .jump-btn {
+                height: 34px;
+            }
+            #jumpPageInput { width: 54px; }
+        }
+
+                /* ===== 品牌主按钮 ===== */
+        .btn-brand {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            border: none !important;
+            color: #fff !important;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-brand:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.5);
+            color: #fff !important;
+        }
+        .btn-brand:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+        }
+
+        /* 全局覆盖原本的蓝色 Spinner 和文字 */
+        .text-primary { color: #4f46e5 !important; }
+        .spinner-border.text-primary { color: #667eea !important; }
     </style>
 {% endblock %}
 
@@ -169,7 +365,7 @@
                 <input type="radio" class="btn-check" name="sortRadio" id="sort_update" value="update">
                 <label class="btn custom-radio-label btn-sm" for="sort_update">🔄 更新时间倒序</label>
             </div>
-            <button class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1" style="min-width: 70px" onclick="loadLists(1)">
+            <button class="btn btn-brand btn-sm d-flex align-items-center gap-1" style="min-width: 70px" onclick="loadLists(1)">
                 🔄 刷新
             </button>
         </div>
@@ -203,7 +399,7 @@
             </div>
             <div class="modal-footer border-top-0 pt-0">
                 <button type="button" class="btn btn-light btn-sm px-3" data-bs-dismiss="modal" id="cancelRenameBtn">取消</button>
-                <button type="button" class="btn btn-primary btn-sm px-3" id="confirmRenameBtn">保存修改</button>
+                <button type="button" class="btn btn-brand btn-sm px-3" id="confirmRenameBtn">保存修改</button>
             </div>
         </div>
     </div>
@@ -296,7 +492,6 @@
                             <button class="btn btn-sm btn-outline-secondary" onclick="loadLists(${page - 1})">返回上一页</button>
                         </div>
                     `;
-                    renderPagination(page, 0);
                 } else {
                     container.innerHTML = `
                         <div class="col-12 text-center text-muted py-5">
@@ -306,12 +501,13 @@
                         </div>
                     `;
                 }
+                renderPagination(page, 0);   // ← 两个分支都调用
                 return;
             }
 
             cachedLists.forEach(list => {
                 const badgeHtml = list.is_default
-                    ? '<span class="badge bg-primary-subtle text-primary ms-2 px-2 py-1" style="font-size:0.7rem;">默认</span>'
+                    ? '<span class="badge ms-2 px-2 py-1" style="background:#f5f6ff; color:#4f46e5; border:1px solid #c7d2fe; font-size:0.7rem;">默认</span>'
                     : '';
 
                 container.innerHTML += `
@@ -326,9 +522,9 @@
                                             ${list.name} ${badgeHtml}
                                         </h6>
                                         <div class="text-muted small text-truncate">
-                                            <span class="text-primary fw-bold">${list.movies_count}</span> 🎬 影片
+                                            🎬 影片 <span style="color: #4f46e5; font-weight: 700;">${list.movies_count}</span>
                                             <span class="mx-1 text-black-50">·</span>
-                                            <span>${list.views_count || 0}</span> 👁️ 浏览
+                                            👁️ 浏览 <span>${list.views_count || 0}</span>
                                         </div>
                                         <small class="text-muted d-block mt-1" style="font-size: 0.725rem;">🕒 ${formatDate(list.created_at)}</small>
                                     </div>
@@ -355,9 +551,10 @@
             container.innerHTML = `
                 <div class="col-12 text-center text-danger py-5 small">
                     ⚠️ 数据加载发生异常：${e.message}
-                    <div><button class="btn btn-primary mt-2" onclick="loadLists(${currentPage})">重试</button></div>
+                    <button class="btn btn-brand mt-2" onclick="loadLists(${currentPage})">重试</button>
                 </div>
             `;
+            paginationEl.classList.add('d-none'); 
         }
     }
 
@@ -458,24 +655,82 @@
         const paginationUl = document.getElementById('paginationList');
         paginationUl.innerHTML = '';
 
-        if (loadedCount === 0 && page === 1) {
-            document.getElementById('pagination').classList.add('d-none');
-            return;
-        }
-
+        // 本页不足 limit 条，视为最后一页
         const isLastPage = loadedCount < limit;
-        const prevDisabled = page <= 1 ? 'disabled' : '';
 
+        // 首页
         paginationUl.innerHTML += `
-            <li class="page-item ${prevDisabled}">
-                <a class="page-link" href="javascript:void(0)" onclick="if(${page} > 1) loadLists(${page - 1})">上一页</a>
-            </li>
-            <li class="page-item active"><span class="page-link">${page}</span></li>
-            <li class="page-item ${isLastPage ? 'disabled' : ''}">
-                <a class="page-link" href="javascript:void(0)" onclick="if(!${isLastPage}) loadLists(${page + 1})">下一页</a>
+            <li class="page-item ${page <= 1 ? 'disabled' : ''}">
+                <a class="page-link" href="javascript:void(0)"
+                onclick="if(${page} > 1) loadLists(1)" title="首页">«</a>
             </li>
         `;
+
+        // 上一页
+        paginationUl.innerHTML += `
+            <li class="page-item ${page <= 1 ? 'disabled' : ''}">
+                <a class="page-link" href="javascript:void(0)"
+                onclick="if(${page} > 1) loadLists(${page - 1})" title="上一页">‹</a>
+            </li>
+        `;
+
+        // 页码窗口
+        const startPage = Math.max(1, page - 2);
+        const endPage = isLastPage ? page : page + 2;
+
+        // 左省略号
+        if (startPage > 1) {
+            paginationUl.innerHTML += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            if (i === page) {
+                paginationUl.innerHTML += `<li class="page-item active"><span class="page-link">${i}</span></li>`;
+            } else {
+                paginationUl.innerHTML += `
+                    <li class="page-item">
+                        <a class="page-link" href="javascript:void(0)" onclick="loadLists(${i})">${i}</a>
+                    </li>
+                `;
+            }
+        }
+
+        // 右省略号：仅当不是最后一页
+        if (!isLastPage) {
+            paginationUl.innerHTML += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+        }
+
+        // 下一页
+        paginationUl.innerHTML += `
+            <li class="page-item ${isLastPage ? 'disabled' : ''}">
+                <a class="page-link" href="javascript:void(0)"
+                onclick="if(!${isLastPage}) loadLists(${page + 1})" title="下一页">›</a>
+            </li>
+        `;
+
+        // 跳页
+        paginationUl.innerHTML += `
+            <li class="jump-wrap">
+                <input type="number" id="jumpPageInput" value="${page + 1}" min="1" placeholder="页码">
+                <button class="jump-btn" onclick="jumpToPage()">跳转</button>
+            </li>
+        `;
+
         document.getElementById('pagination').classList.remove('d-none');
+
+        // 跳页输入框绑定回车
+        const jumpInput = paginationUl.querySelector('#jumpPageInput');
+        if (jumpInput) {
+            jumpInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') jumpToPage();
+            });
+        }
+    }
+
+    function jumpToPage() {
+        const val = document.getElementById('jumpPageInput').value;
+        const p = parseInt(val, 10);
+        if (p && p > 0) loadLists(p);
     }
 
     // 初始化运行

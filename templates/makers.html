@@ -4,11 +4,17 @@
 
 {% block styles %}
     <style>
+                /* ===== 片商卡片样式 ===== */
         .maker-card {
-            transition: transform 0.2s;
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+            background: #ffffff; /* 改为纯白底，更清爽 */
+            border: 1px solid #e5e7eb !important; /* 浅灰边框 */
         }
-        .maker-card:hover { transform: scale(1.02); }
+        .maker-card:hover { 
+            transform: translateY(-4px); /* 上浮 */
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.15) !important; /* 紫光阴影 */
+            border-color: #c7d2fe !important; /* 悬浮泛紫边框 */
+        }
         .maker-card .card-body {
             display: flex;
             flex-direction: column;
@@ -18,26 +24,181 @@
             text-align: center;
         }
         .tab-content { margin-top: 20px; }
-        .nav-link:hover {
-            transition: none !important;
-        }
-        /* 彻底清除导航选项卡切换时的闪烁、焦点残留和过渡动画 */
-        .nav-tabs .nav-link {
-            transition: none !important; /* 禁用所有属性的动画 */
-        }
 
+        /* ===== 选项卡样式（防闪烁 + 紫蓝高亮） ===== */
+        .nav-tabs .nav-link {
+            transition: none !important;
+            color: #6b7280;
+            font-weight: 500;
+            border: none;
+            padding: 10px 16px;
+            margin-right: 4px;
+            border-bottom: 3px solid transparent;
+        }
+        .nav-tabs .nav-link:hover {
+            color: #4f46e5;
+            background: transparent;
+        }
+        .nav-tabs .nav-link.active {
+            color: #4f46e5 !important;
+            font-weight: 600;
+            background: transparent;
+            border-bottom: 3px solid #667eea !important;
+        }
         /* 强制清除未激活标签的背景色和边框色 */
         .nav-tabs .nav-link:not(.active) {
             background-color: transparent !important;
             border-color: transparent !important;
-            color: inherit; /* 保持文字原本颜色 */
+            color: inherit;
         }
-
-        /* 消除按钮点击后的焦点外发光和点击瞬间的默认样式 */
+        /* 消除按钮点击后的焦点外发光 */
         .nav-tabs .nav-link:focus,
         .nav-tabs .nav-link:active {
             box-shadow: none !important;
             outline: none !important;
+        }
+
+        /* 全局覆盖原本的蓝色 Spinner */
+        .text-primary { color: #667eea !important; }
+
+        /* ===== 分页容器（适用于所有 xxxPagination / xxxPaginationList） ===== */
+        [id$="Pagination"] {
+            margin-top: 2rem !important;
+        }
+
+        [id$="PaginationList"] {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px;
+            align-items: center;
+        }
+
+        [id$="PaginationList"] .page-item {
+            margin: 0;
+        }
+
+        [id$="PaginationList"] .page-item .page-link {
+            min-width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 12px;
+            margin-left: 0 !important;
+            border: 1px solid #e9ecef;
+            border-radius: 10px !important;
+            background: #fff;
+            color: #495057;
+            font-weight: 500;
+            font-size: 0.9rem;
+            line-height: 1;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+            text-decoration: none;
+        }
+
+        [id$="PaginationList"] .page-item .page-link:hover {
+            background: #eef2ff;
+            border-color: #c7d2fe;
+            color: #4f46e5;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.12);
+        }
+
+        [id$="PaginationList"] .page-item.active .page-link {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+        }
+
+        [id$="PaginationList"] .page-item.disabled .page-link {
+            background: #f8f9fa;
+            border-color: #f1f3f5;
+            color: #adb5bd;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        [id$="PaginationList"] .page-item.disabled .page-link:hover {
+            background: #f8f9fa;
+            border-color: #f1f3f5;
+            color: #adb5bd;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* ===== 跳页区 ===== */
+        [id$="PaginationList"] .jump-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: 10px;
+        }
+
+        [id$="PaginationList"] .jumpPageInput {
+            width: 64px;
+            height: 40px;
+            border-radius: 10px !important;
+            border: 1px solid #e9ecef !important;
+            text-align: center;
+            font-weight: 500;
+            color: #495057;
+            transition: all 0.2s;
+            padding: 0 !important;
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+
+        [id$="PaginationList"] .jumpPageInput::-webkit-outer-spin-button,
+        [id$="PaginationList"] .jumpPageInput::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        [id$="PaginationList"] .jumpPageInput:focus {
+            border-color: #a5b4fc !important;
+            box-shadow: 0 0 0 3px rgba(165, 180, 252, 0.25);
+            outline: none;
+        }
+
+        [id$="PaginationList"] .jump-btn {
+            height: 40px;
+            padding: 0 16px;
+            border-radius: 10px !important;
+            border: 1px solid #c7d2fe;
+            background: #fff;
+            color: #4f46e5;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            margin-left: 0 !important;
+        }
+
+        [id$="PaginationList"] .jump-btn:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* ===== 小屏适配 ===== */
+        @media (max-width: 576px) {
+            [id$="PaginationList"] { gap: 4px; }
+            [id$="PaginationList"] .page-item .page-link {
+                min-width: 34px;
+                height: 34px;
+                padding: 0 8px;
+                font-size: 0.82rem;
+            }
+            [id$="PaginationList"] .jumpPageInput,
+            [id$="PaginationList"] .jump-btn {
+                height: 34px;
+            }
+            [id$="PaginationList"] .jumpPageInput { width: 54px; }
         }
     </style>
 {% endblock %}
@@ -48,19 +209,19 @@
     <!-- 选项卡 -->
     <ul class="nav nav-tabs" id="makerTabs" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link {% if active_tab == 'censored' %}active{% endif %}" id="tab-censored" data-bs-toggle="tab" data-bs-target="#panel-censored" type="button" role="tab">有码</button>
+            <button class="nav-link {% if active_tab == 'censored' %}active{% endif %}" id="tab-censored" data-bs-toggle="tab" data-bs-target="#panel-censored" type="button" role="tab">👩 有码</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link {% if active_tab == 'uncensored' %}active{% endif %}" id="tab-uncensored" data-bs-toggle="tab" data-bs-target="#panel-uncensored" type="button" role="tab">无码</button>
+            <button class="nav-link {% if active_tab == 'uncensored' %}active{% endif %}" id="tab-uncensored" data-bs-toggle="tab" data-bs-target="#panel-uncensored" type="button" role="tab">🔞 无码</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link {% if active_tab == 'western' %}active{% endif %}" id="tab-western" data-bs-toggle="tab" data-bs-target="#panel-western" type="button" role="tab">欧美</button>
+            <button class="nav-link {% if active_tab == 'western' %}active{% endif %}" id="tab-western" data-bs-toggle="tab" data-bs-target="#panel-western" type="button" role="tab">🌍 欧美</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link {% if active_tab == 'fc2' %}active{% endif %}" id="tab-fc2" data-bs-toggle="tab" data-bs-target="#panel-fc2" type="button" role="tab">FC2</button>
+            <button class="nav-link {% if active_tab == 'fc2' %}active{% endif %}" id="tab-fc2" data-bs-toggle="tab" data-bs-target="#panel-fc2" type="button" role="tab">😉 FC2</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link {% if active_tab == 'anime' %}active{% endif %}" id="tab-anime" data-bs-toggle="tab" data-bs-target="#panel-anime" type="button" role="tab">动漫</button>
+            <button class="nav-link {% if active_tab == 'anime' %}active{% endif %}" id="tab-anime" data-bs-toggle="tab" data-bs-target="#panel-anime" type="button" role="tab">🌸 动漫</button>
         </li>
     </ul>
 
@@ -121,7 +282,7 @@
                         <div class="card h-100 maker-card shadow-sm border-0">
                             <a href="${detailUrl}" class="card-link-block h-100" target="_blank">
                                 <div class="card-body">
-                                    <h5 class="card-title fw-bold text-primary mb-3" title="${item.name}">${item.name}</h5>
+                                    <h5 class="card-title fw-bold text-dark mb-3" title="${item.name}" style="color: #374151 !important;">${item.name}</h5>
                                     <span class="badge bg-light text-dark border shadow-sm">📁 ${item.videos_count} 部作品</span>
                                 </div>
                             </a>
@@ -137,41 +298,78 @@
             const paginationUl = document.getElementById(paginationId + 'List');
             paginationUl.innerHTML = '';
 
+            // 当前页返回不足 24 条，视为最后一页
             const isLastPage = loadedCount < limit;
-            const prevDisabled = currentPage <= 1 ? 'disabled' : '';
 
+            // 首页
             paginationUl.innerHTML += `
-                <li class="page-item ${prevDisabled}">
-                    <a class="page-link" href="javascript:void(0)" onclick="if(${currentPage} > 1) ${loadFunc}(${currentPage - 1}, true)">上一页</a>
+                <li class="page-item ${currentPage <= 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="javascript:void(0)"
+                    onclick="if(${currentPage} > 1) ${loadFunc}(1, true)" title="首页">«</a>
                 </li>
             `;
 
-            let startPage = Math.max(1, currentPage - 2);
-            let endPage = isLastPage ? currentPage : currentPage + 2;
+            // 上一页
+            paginationUl.innerHTML += `
+                <li class="page-item ${currentPage <= 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="javascript:void(0)"
+                    onclick="if(${currentPage} > 1) ${loadFunc}(${currentPage - 1}, true)" title="上一页">‹</a>
+                </li>
+            `;
+
+            // 页码窗口
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = isLastPage ? currentPage : currentPage + 2;
+
+            // 左省略号
+            if (startPage > 1) {
+                paginationUl.innerHTML += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+            }
 
             for (let i = startPage; i <= endPage; i++) {
                 if (i === currentPage) {
                     paginationUl.innerHTML += `<li class="page-item active"><span class="page-link">${i}</span></li>`;
                 } else {
-                    paginationUl.innerHTML += `<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="${loadFunc}(${i}, true)">${i}</a></li>`;
+                    paginationUl.innerHTML += `
+                        <li class="page-item">
+                            <a class="page-link" href="javascript:void(0)" onclick="${loadFunc}(${i}, true)">${i}</a>
+                        </li>
+                    `;
                 }
             }
 
-            const nextDisabled = isLastPage ? 'disabled' : '';
+            // 右省略号：仅当不是最后一页
+            if (!isLastPage) {
+                paginationUl.innerHTML += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+            }
+
+            // 下一页
             paginationUl.innerHTML += `
-                <li class="page-item ${nextDisabled}">
-                    <a class="page-link" href="javascript:void(0)" onclick="if(!${isLastPage}) ${loadFunc}(${currentPage + 1}, true)">下一页</a>
+                <li class="page-item ${isLastPage ? 'disabled' : ''}">
+                    <a class="page-link" href="javascript:void(0)"
+                    onclick="if(!${isLastPage}) ${loadFunc}(${currentPage + 1}, true)" title="下一页">›</a>
                 </li>
             `;
 
+            // 跳页
             paginationUl.innerHTML += `
-                <li class="page-item ms-3 d-flex align-items-center">
-                    <input type="number" class="jumpPageInput form-control text-center px-1" style="width: 60px; height: 38px;" value="${currentPage + 1}" min="1">
-                    <button class="btn btn-outline-primary ms-1" style="height: 38px;" onclick="jumpToPage('${paginationId}', '${loadFunc}')">跳转</button>
+                <li class="jump-wrap">
+                    <input type="number" class="jumpPageInput" value="${currentPage + 1}" min="1" placeholder="页码">
+                    <button class="jump-btn" onclick="jumpToPage('${paginationId}', '${loadFunc}')">跳转</button>
                 </li>
             `;
 
             document.getElementById(paginationId).classList.remove('d-none');
+
+            // 给当前渲染的跳页输入框绑定回车
+            const jumpInput = paginationUl.querySelector('.jumpPageInput');
+            if (jumpInput) {
+                jumpInput.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter') {
+                        jumpToPage(paginationId, loadFunc);
+                    }
+                });
+            }
         }
 
         function jumpToPage(paginationId, loadFunc) {
@@ -179,7 +377,7 @@
             const val = input.value;
             const p = parseInt(val, 10);
             if (p && p > 0) {
-                const fn = eval(loadFunc);
+                const fn = window[loadFunc];   // ← 替换 eval
                 if (typeof fn === 'function') fn(p, true);
             }
         }
@@ -199,9 +397,7 @@
                 const makers = data.data.makers || [];
                 renderMakerCards(makers, containerId, emptyText);
 
-                if (makers.length > 0) {
-                    renderPagination(page, makers.length, paginationId, funcName);
-                }
+                renderPagination(page, makers.length, paginationId, funcName);
                 if (scrollToTop) document.getElementById(containerId).scrollIntoView({ behavior: 'smooth', block: 'start' });
             } catch (e) {
                 container.innerHTML = `

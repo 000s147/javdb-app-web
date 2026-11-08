@@ -295,16 +295,81 @@
             visibility: visible;
             transform: translateX(0);
         }
-        .list-hover {
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        /* ===== 相关清单卡片美化 ===== */
+        #relatedListsContainer .card {
+            border: 1px solid #e5e7eb !important;
+            border-radius: 0.375rem; 
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02) !important;
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
         }
-        .list-hover:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 20px rgba(13, 110, 253, 0.08) !important;
-            border-color: rgba(13, 110, 253, 0.25) !important;
+        #relatedListsContainer .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.15) !important;
+            border-color: #c7d2fe !important;
         }
-        .comment-hover:hover {
-            background-color: #f5f5f5;
+        
+        /* 清单图标 */
+        .related-list-icon {
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f5f6ff;
+            color: #4f46e5;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+            margin-right: 12px;
+        }
+        
+        /* 清单标题：减轻字重，微调字号和颜色 */
+        .related-list-title {
+            font-size: 0.99rem;       /* 稍微调小一点点 */
+            font-weight: 500;         /* 👈 从 600 降为 500，去掉厚重感 */
+            color: #374151;           /* 👈 从纯黑 #1f2937 改为高级灰，视觉更轻 */
+            letter-spacing: 0.2px;    /* 稍微增加一点字间距，让字松透气 */
+            margin-bottom: 3px;
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        /* 清单数据：颜色减淡 */
+        .related-list-meta {
+            font-size: 0.72rem;
+            font-weight: 400;         /* 保持常规粗细 */
+            color: #9ca3af;           /* 👈 从 #6b7280 改为更浅的灰，减轻视觉重量 */
+            white-space: nowrap;
+        }
+        .related-list-meta span {
+            margin-right: 8px;        /* 增加一点数据之间的间距 */
+        }
+        /* ===== 用户评论列表（紧凑版） ===== */
+        #reviewsList {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+            overflow: hidden;
+        }
+
+        #reviewsList .list-group-item {
+            border: none !important;
+            border-bottom: 1px dashed #e5e7eb !important;
+            padding: 10px 16px;        /* 👈 从 16px 20px 收紧到 10px 16px */
+            background: transparent;
+            transition: background-color 0.2s ease;
+        }
+
+        #reviewsList .list-group-item:last-child {
+            border-bottom: none !important;
+        }
+
+        #reviewsList .list-group-item:hover {
+            background-color: #f5f6ff !important;
         }
         /* 灯箱视频专属样式：保证加载前就有合理尺寸 */
         #lightboxVideo {
@@ -333,6 +398,77 @@
         #magnetsContainer td {
             vertical-align: middle !important;
             height: 50px;
+        }
+
+        /* ===== 磁力链接：移动端改为卡片列表 ===== */
+        @media (max-width: 767.98px) {
+            #magnetsSection .table-responsive {
+                overflow-x: visible;            /* 不再需要横向滚动 */
+            }
+
+            #magnetsSection table,
+            #magnetsSection tbody,
+            #magnetsSection tr,
+            #magnetsSection td {
+                display: block;
+                width: 100% !important;
+            }
+
+            #magnetsSection colgroup {
+                display: none;                  /* 固定列宽失效 */
+            }
+
+            #magnetsSection tbody tr {
+                padding: 12px 14px;
+                border-bottom: 1px solid rgb(237, 237, 237);
+            }
+            #magnetsSection tbody tr:last-child {
+                border-bottom: none;
+            }
+
+            /* 所有单元格：去掉边框/内边距/固定高度 */
+            #magnetsContainer td {
+                height: auto !important;
+                padding: 0 !important;
+                border: none !important;
+                vertical-align: baseline !important;
+            }
+
+            /* 第 1 列：磁力名称，独占一行，允许长串换行 */
+            #magnetsContainer td:nth-child(1) {
+                max-width: 100% !important;      /* 覆盖内联 max-width:250px */
+                margin-bottom: 8px;
+                font-size: 0.9rem;
+                line-height: 1.45;
+                word-break: break-all;           /* 磁链名常有长无空格串 */
+                overflow-wrap: anywhere;
+            }
+
+            /* 第 2/3/5 列：大小、标签、时间 —— 行内小字 */
+            #magnetsContainer td:nth-child(2),
+            #magnetsContainer td:nth-child(3),
+            #magnetsContainer td:nth-child(5) {
+                display: inline-block;
+                width: auto !important;
+                margin-right: 12px;
+                margin-bottom: 8px;
+                font-size: 0.78rem;
+                color: #6c757d;
+            }
+
+            /* 第 4 列：复制按钮通栏，方便拇指点击 */
+            #magnetsContainer td:nth-child(4) .btn {
+                width: 100% !important;          /* 覆盖内联 width:100px */
+                padding: 8px 0;
+                font-size: 0.875rem;
+            }
+
+            /* 空状态 / 加载中（只有一个 td 的行） */
+            #magnetsContainer td:only-child {
+                text-align: center;
+                padding: 18px 0 !important;
+                color: #6c757d;
+            }
         }
 
         /* 1. 减轻播放器整体的外围阴影 */
@@ -424,6 +560,28 @@
             justify-content: space-between; /* 巧妙利用 Grid 特性：满行时两端贴边，不足行时卡片靠左且保持 gap 间距 */
         }
 
+        /* ===== 影片卡片：移动端自适应（桌面保持 147px 固定网格） ===== */
+        @media (max-width: 767.98px) {
+            .movie-card-item {
+                width: 100%;
+                max-width: none;      /* 解除 147px 锁定 */
+                min-width: 0;         /* 防止 nowrap 番号把列撑破 */
+            }
+
+            .movie-card-grid {
+                /* 每列最小 100px，剩余空间均分；屏窄时自动降列数 */
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                gap: 10px;
+                justify-content: start;   /* 改为 1fr 后无需 space-between */
+            }
+
+            .movie-card-img-wrap {
+                width: 100%;
+                height: auto;              /* 高度交给比例 */
+                aspect-ratio: 147 / 200;   /* 维持原封面比例 */
+            }
+        }
+
         .card-title {
             white-space: nowrap;
             overflow: hidden;
@@ -457,6 +615,262 @@
             height: auto;
             object-fit: contain;       /* 确保比例不失调 */
         }
+
+                /* ===== 品牌主按钮：想看、提交、重试等 ===== */
+        .btn-brand {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            border: none !important;
+            color: #fff !important;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-brand:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.5);
+            color: #fff !important;
+        }
+
+        /* ===== 品牌线框按钮（未选中态） ===== */
+        .btn-brand-outline {
+            background: #fff !important;
+            border: 1px solid #c7d2fe !important;
+            color: #4f46e5 !important;
+            font-weight: 500;
+            transition: all 0.25s ease;
+        }
+        .btn-brand-outline:hover {
+            background: #f5f6ff !important;
+            border-color: #667eea !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+
+        .btn-brand-light-outline {
+            background: #fff !important;
+            border: 1px solid #ffd9b0 !important;
+            color: #cb7c00 !important;
+            font-weight: 500;
+            transition: all 0.25s ease;
+        }
+        .btn-brand-light-outline:hover {
+            background: #f8ecdf !important;
+            border-color: #f7ba79 !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+
+        /* ===== 柔和绿（用于“看过”按钮） ===== */
+        .btn-success-soft {
+            background: #f0fdf4 !important;
+            border: 1px solid #bbf7d0 !important;
+            color: #16a34a !important;
+            font-weight: 500;
+            transition: all 0.25s ease;
+        }
+        .btn-success-soft:hover {
+            background: #dcfce7 !important;
+            border-color: #86efac !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.15);
+        }
+
+        /* ===== 柔和红（用于“已想看/已看过”等取消操作） ===== */
+        .btn-danger-soft {
+            background: #fef2f2 !important;
+            border: 1px solid #fecaca !important;
+            color: #dc2626 !important;
+            font-weight: 500;
+            transition: all 0.25s ease;
+        }
+        .btn-danger-soft:hover {
+            background: #fee2e2 !important;
+            border-color: #fca5a5 !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+        }
+
+        /* ===== 覆盖原生蓝色 ===== */
+        .text-primary { color: #4f46e5 !important; }
+        .spinner-border.text-primary { color: #667eea !important; }
+
+        /* ===== 弹窗里取消/确认按钮优化 ===== */
+        .modal-footer .btn-secondary {
+            background: #f3f4f6 !important;
+            color: #4b5563 !important;
+            border: none !important;
+            font-weight: 500;
+        }
+
+        /* ===== 替换掉原来的各种灰/黑色阴影为紫光 ===== */
+        .preview-img:hover { box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3); }
+        .movie-card:hover { box-shadow: 0 10px 25px rgba(102, 126, 234, 0.15) !important; }
+        .list-hover:hover { box-shadow: 0 12px 20px rgba(102, 126, 234, 0.15) !important; border-color: #c7d2fe !important; }
+        .quick-nav-menu .nav-btn:hover { color: #4f46e5 !important; box-shadow: 0 6px 16px rgba(102, 126, 234, 0.25) !important; }
+
+        /* ===== 优化演员标签和类别标签的悬浮特效 ===== */
+        .tag-item:hover { background: #f5f6ff !important; border-color: #c7d2fe !important; color: #4f46e5 !important; box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1); }
+        .btn-remove {
+            background: #fff !important;
+            border: 1px solid #e5e7eb !important;
+            color: #6b7280 !important;
+            font-weight: 500;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-remove:hover {
+            background: #fef2f2 !important;
+            border-color: #fecaca !important;
+            color: #dc2626 !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+        }
+        .btn-remove:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+        /* ===== 柔和橙（用于“想看”按钮） ===== */
+        .btn-warning-soft {
+            background: #fff7ed !important;
+            border: 1px solid #fed7aa !important;
+            color: #ea580c !important;
+            font-weight: 500;
+            transition: all 0.25s ease;
+        }
+        .btn-warning-soft:hover {
+            background: #ffedd5 !important;
+            border-color: #fdba74 !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(234, 88, 12, 0.15);
+        }
+
+        /* ===== 磁力链接列表美化 ===== */
+        #magnetsSection .card {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02) !important;
+        }
+
+        /* 行悬停：淡淡的紫罗兰色 */
+        #magnetsSection tbody tr {
+            transition: background-color 0.2s ease;
+        }
+        #magnetsSection tbody tr:hover {
+            background-color: #f5f6ff !important; /* 极淡的品牌紫 */
+        }
+
+        /* 磁力名称链接 */
+        #magnetsSection tbody td a.magnet-link {
+            color: #374151; /* 改回深黑色 */
+            font-weight: 500; /* 改回常规粗细 */
+            transition: color 0.2s;
+            text-decoration: none;
+        }
+        #magnetsSection tbody td a.magnet-link:hover {
+            color: #4f46e5;
+            text-decoration: underline;
+        }
+
+        /* 柔和风格的 HD / 字幕 标签 */
+        .magnet-badge-hd {
+            background-color: #eff6ff !important;
+            color: #2563eb !important;
+            border: 1px solid #bfdbfe !important;
+            font-weight: 500;
+        }
+        .magnet-badge-sub {
+            background-color: #fff7ed !important;
+            color: #ea580c !important;
+            border: 1px solid #fed7aa !important;
+            font-weight: 500;
+        }
+
+        /* 时间文字弱化 */
+        .magnet-time {
+            color: #495057; /* 稍微深一点的灰 */
+            font-size: 1rem; /* 恢复原始大小 */
+        }
+
+        /* 表头去除粗边框 */
+        #magnetsSection .table th,
+        #magnetsSection .table td {
+            border-color: #f1f3f5;
+        }
+
+        /* 移动端微调 */
+        @media (max-width: 767.98px) {
+            #magnetsSection tbody tr {
+                border-bottom: 1px dashed #e5e7eb !important;
+            }
+            #magnetsSection tbody tr:last-child {
+                border-bottom: none !important;
+            }
+        }
+
+                /* ===== 顶部影片信息卡片（统一边框与质感） ===== */
+        .info-panel-card {
+            border: 1px solid #e5e7eb; /* 统一浅灰边框 */
+            border-radius: 0.375rem;
+            background: #fff;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02) !important; /* 极其轻柔的底色阴影 */
+        }
+
+        /* 影片大标题美化 */
+        #detailTitle {
+            font-size: 1.4rem;
+            color: #1f2937;
+            border-bottom: 1px solid #f3f4f6;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+        }
+
+        /* 优化信息列表：保留虚线，字体恢复原版 */
+        .info-list .list-group-item {
+            padding: 10px 0;
+            font-size: 1rem; /* 恢复默认字号 */
+            border-bottom: 1px dashed #f1f3f5 !important; /* 改为虚线，更有层次感 */
+        }
+        .info-list .list-group-item:last-child {
+            border-bottom: none !important;
+        }
+        .info-list strong {
+            color: #212529; /* 恢复深黑色 */
+            font-weight: 700; /* 恢复加粗 */
+        }
+
+        /* 统一番号、系列、导演、片商链接的紫蓝色 */
+        #detailNumber a,
+        #detailSeries a,
+        #detailDirector a,
+        #detailMaker a {
+            color: #4f46e5;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+        #detailNumber a:hover,
+        #detailSeries a:hover,
+        #detailDirector a:hover,
+        #detailMaker a:hover {
+            color: #764ba2;
+            text-decoration: underline !important;
+        }
+
+        /* 搜索磁力图标与复制图标微调 */
+        #copyNumberBtn {
+            color: #6b7280 !important;
+            transition: color 0.2s;
+        }
+        #copyNumberBtn:hover {
+            color: #4f46e5 !important;
+        }
+        #searchMagnetBtn {
+            color: #4f46e5 !important;
+            transition: color 0.2s;
+        }
+        #searchMagnetBtn:hover {
+            color: #764ba2 !important;
+        }
     </style>
 {% endblock %}
 
@@ -468,7 +882,7 @@
         </div>
 
         <div id="detailCard" class="d-none">
-            <div class="card shadow-sm">
+            <div class="card info-panel-card">
                 <div class="card-body">
                     <div class="row">
                         <h4 id="detailTitle" class="fw-bold mb-3"></h4>
@@ -483,14 +897,22 @@
                                     <strong>番号：</strong>
                                     <span id="detailNumber"></span>
                                     <i class="bi bi-copy ms-2 text-black" id="copyNumberBtn" onclick="copyNumber()" title="复制"></i>
+                                    <a id="searchMagnetBtn"
+                                    class="ms-2 text-decoration-none"
+                                    href="#"
+                                    target="_blank"
+                                    rel="noopener"
+                                    title="搜索该番号的磁力链接"
+                                    style="display:none;">
+                                        <i class="bi bi-search"></i>
+                                    </a>
                                 </li>
                                 <li class="list-group-item"><strong>发行日期：</strong> <span id="detailDate"></span></li>
                                 <li class="list-group-item"><strong>时长：</strong> <span id="detailDuration"></span></li>
                                 <li class="list-group-item"><strong>评分：</strong> <span id="detailScore" class="badge bg-warning text-dark"></span></li>
-                                <li class="list-group-item"><strong>想看人数：</strong> <span id="detailWantWatch"></span></li>
-                                <li class="list-group-item"><strong>看过人数：</strong> <span id="detailWatched"></span></li>
-                                <!-- 类型：0有码 1无码 2欧美 3FC2 -->
-                                <li class="list-group-item d-none"><strong>类型：</strong> <span id="detailType"></span></li>
+                                <li class="list-group-item"><strong>人气：</strong> <span id="detailWantWatch"></span> 人想看, <span id="detailWatched"></span> 人看过</li>
+                                <!-- 影片类型：0有码 1无码 2欧美 3FC2 -->
+                                <li class="list-group-item"><strong>影片类型：</strong> <span id="detailType"></span></li>
                                 <!-- 系列 -->
                                 <li class="list-group-item" id="seriesRow"><strong>系列：</strong> <span id="detailSeries"></span></li>
                                 <!-- 导演 -->
@@ -507,9 +929,9 @@
                                 <li class="list-group-item" id="tagsRow"><strong style="min-width: 50px;">类别：</strong> <span id="detailTags"></span></li>
                             </ul>
                             <div id="actionGroup" class="mt-3">
-                                <button id="watchlistBtn" class="btn btn-outline-primary" onclick="toggleWatchlist()">加载中...</button>
-                                <button id="watchedBtn" class="btn btn-outline-success mt-2" style="margin-left: 8px;" onclick="toggleWatched()">加载中...</button>
-                                <button id="listBtn" class="btn btn-outline-info" style="margin-left: 8px;" onclick="openListModal()">加入清单</button>
+                                <button id="watchlistBtn" class="btn btn-brand-outline" onclick="toggleWatchlist()">加载中...</button>
+                                <button id="watchedBtn" class="btn btn-success-soft mt-2" style="margin-left: 8px;" onclick="toggleWatched()">加载中...</button>
+                                <button id="listBtn" class="btn btn-brand-outline" style="margin-left: 8px;" onclick="openListModal()">加入清单</button>
                             </div>
                         </div>
                     </div>
@@ -522,15 +944,13 @@
                     <div class="card-body p-0">
                         <div class="table-responsive">
                             <table class="table table-hover mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>名称</th>
-                                        <th width="120">大小</th>
-                                        <th width="110">属性</th>
-                                        <th width="170">操作</th>
-                                        <th width="130">时间</th>
-                                    </tr>
-                                </thead>
+                                <colgroup>
+                                    <col>
+                                    <col style="width:120px">
+                                    <col style="width:110px">
+                                    <col style="width:170px">
+                                    <col style="width:130px">
+                                </colgroup>
                                 <tbody id="magnetsContainer"></tbody>
                             </table>
                         </div>
@@ -573,7 +993,7 @@
                     <span class="ms-2">加载中...</span>
                 </div>
                 <div id="loadMoreBtnWrap" class="text-center d-none">
-                    <button class="btn btn-outline-secondary" onclick="loadMoreReviews()">加载更多评论</button>
+                    <button class="btn btn-brand-outline" onclick="loadMoreReviews()">加载更多评论</button>
                 </div>
             </div>
 
@@ -586,7 +1006,7 @@
                     <span class="ms-2">加载中...</span>
                 </div>
                 <div id="loadMoreListsBtnWrap" class="text-center d-none">
-                    <button class="btn btn-outline-secondary" onclick="loadMoreRelatedLists()">加载更多清单</button>
+                    <button class="btn btn-brand-outline" onclick="loadMoreRelatedLists()">加载更多清单</button>
                 </div>
             </div>
         </div>
@@ -618,9 +1038,9 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-danger me-auto" id="removeWatchedBtn" style="display:none;">取消看过</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" id="submitWatchedBtn">提交</button>
+                    <button type="button" class="btn btn-remove me-auto" id="removeWatchedBtn" style="display:none;">取消看过</button>
+                    <button type="button" class="btn btn-remove" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-brand" id="submitWatchedBtn">提交</button>
                 </div>
             </div>
         </div>
@@ -658,7 +1078,7 @@
                             <!-- 这里的 id="newListName" 和原代码完全保持一致 -->
                             <input type="text" id="newListName" class="form-control" placeholder="输入新清单名称" maxlength="20">
                             <!-- 保留了原来的 onclick="createNewList()" -->
-                            <button class="btn btn-primary" onclick="createNewList()">创建并加入</button>
+                            <button class="btn btn-brand" onclick="createNewList()">创建并加入</button>
                         </div>
                         <!-- 保留了原来的反馈信息展示容器 -->
                         <div id="createListFeedback" class="small text-muted mt-1"></div>
@@ -733,11 +1153,11 @@
                     currentReviewStatus = null;
                 }
 
-                document.getElementById('detailCover').src = `/api/image_proxy?url=${encodeURIComponent(m.cover_url)}`;
+                document.getElementById('detailCover').src = `/api/image?url=${encodeURIComponent(m.cover_url)}`;
 
                 const originTitle = m.origin_title || '';
 
-                document.getElementById('detailTitle').innerHTML = `<span id="number">${m.number}</span> <span id="originTitle" data-origin="${originTitle}">${originTitle}</span>`;
+                document.getElementById('detailTitle').innerHTML = `<span id="number">${m.number}</span> <span id="originTitle" data-origin="${originTitle}">${m.title}</span>`;
                 document.title = m.number + ' ' + originTitle + ' - JavDB';
 
                 // 获取番号和番号前缀
@@ -749,6 +1169,16 @@
                     detailNumberText = `<a href="/code/${numberLetter}" class="text-decoration-none" target="_blank">${numberLetter}</a>${number}`;
                 }
                 document.getElementById('detailNumber').innerHTML = detailNumberText;
+                
+                // 搜索磁力入口
+                const searchMagnetBtn = document.getElementById('searchMagnetBtn');
+                if (m.number) {
+                    searchMagnetBtn.href = `/search_magnet?q=${encodeURIComponent(m.number)}`;
+                    searchMagnetBtn.style.display = '';
+                } else {
+                    searchMagnetBtn.style.display = 'none';
+                }
+
                 document.getElementById('detailDate').innerText = m.release_date;
                 let duration = m.duration + ' 分钟'
                 if (m.duration === null) {
@@ -758,7 +1188,21 @@
                 document.getElementById('detailScore').innerText = m.score || '暂无';
                 document.getElementById('detailWantWatch').innerText = m.want_watch_count || 0;
                 document.getElementById('detailWatched').innerText = m.watched_count || 0;
-                document.getElementById('detailType').innerText = m.type || 0;
+                let dt = m.type || 0;
+                let detailType = "未知";
+                if (dt === 0) {
+                    detailType = "有码";
+                } else if (dt === 1) {
+                    detailType = "无码";
+                } else if (dt === 2) {
+                    detailType = "欧美";
+                } else if (dt === 3) {
+                    detailType = "FC2";
+                } else if (dt === 4) {
+                    detailType = "动漫";
+                }
+
+                document.getElementById('detailType').innerText = detailType;
 
                 // ---- 系列 ----
                 const series = m.series || null;
@@ -806,7 +1250,7 @@
                     const gender = a.gender || 0;
                     const noAvatarImg = gender === 1 ? `{{ url_for('static', filename='images/male-avatar.jpg') }}` : `{{ url_for('static', filename='images/female-avatar.jpg') }}`;
                     const genderClass = a.gender === 0 ? 'female' : 'male';
-                    const avatarUrl = a.avatar_url ? `/api/image_proxy?url=${encodeURIComponent(a.avatar_url)}` : '';
+                    const avatarUrl = a.avatar_url ? `/api/image?url=${encodeURIComponent(a.avatar_url)}` : '';
                     const avatarImg = avatarUrl ?
                         `<img src="${avatarUrl}" class="actor-avatar" alt="${a.name}" data-type="avatar" onerror="this.src='${noAvatarImg}'">` :
                         `<img src="${noAvatarImg}" class="actor-avatar" alt="${a.name}" data-type="avatar">`;
@@ -855,7 +1299,7 @@
                     if (m.preview_images && m.preview_images.length > 0) {
                         videoPoster = m.preview_images[0].thumb_url;
                     }
-                    videoPoster = `/api/image_proxy?url=${encodeURIComponent(videoPoster)}`;
+                    videoPoster = `/api/image?url=${encodeURIComponent(videoPoster)}`;
 
                     previewContainer.innerHTML += `
                         <div class="preview-item">
@@ -869,7 +1313,7 @@
                     `;
                 }
 
-                lightboxImages = (m.preview_images || []).map(p => `/api/image_proxy?url=${encodeURIComponent(p.large_url)}`);
+                lightboxImages = (m.preview_images || []).map(p => `/api/image?url=${encodeURIComponent(p.large_url)}`);
                 if (lightboxImages.length > 0) {
                     lightboxImages.forEach((lUrl, index) => {
                         previewContainer.innerHTML += `
@@ -896,7 +1340,7 @@
                 const actorMovies = m.actor_movies || [];
                 if (actorMovies.length > 0) {
                     actorMovies.forEach(movie => {
-                        const thumb_ = `/api/image_proxy?url=${encodeURIComponent(movie.thumb_url)}`;
+                        const thumb_ = `/api/image?url=${encodeURIComponent(movie.thumb_url)}`;
                         const thumb = thumb_.replace('/small_covers/', '/covers/');
                         const item = document.createElement('div');
                         item.className = 'movie-card-item';          // 自定义样式类
@@ -929,7 +1373,7 @@
                 const relatives = m.relative_movies || [];
                 if (relatives.length > 0) {
                     relatives.forEach(movie => {
-                        const thumb_ = `/api/image_proxy?url=${encodeURIComponent(movie.thumb_url)}`;
+                        const thumb_ = `/api/image?url=${encodeURIComponent(movie.thumb_url)}`;
                         const thumb = thumb_.replace('/small_covers/', '/covers/');
                         const item = document.createElement('div');
                         item.className = 'movie-card-item';          // 自定义样式类
@@ -991,20 +1435,22 @@
                 if (dataMag.data.magnets.length > 0) {
                     dataMag.data.magnets.forEach(mag => {
                         var sizeText = mag.size > 1024 ? (mag.size / 1024).toFixed(2) + ' GB' : mag.size + ' MB';
-                        if (mag.size === 0) sizeText = '未知';
+                        if (mag.size === 0) sizeText = '';
                         const link = `magnet:?xt=urn:btih:${mag.hash}`;
                         magContainer.innerHTML += `
                             <tr>
-                                <td class="text-break" style="max-width: 250px;"><a href="${link}" class="link-offset-2 link-underline link-underline-opacity-0 text-black text-decoration-none">${mag.name}</a></td>
-                                <td class="text-nowrap">${sizeText}</td>
+                                <td class="text-break" style="max-width: 250px;">
+                                    <a href="${link}" class="magnet-link">${mag.name}</a>
+                                </td>
+                                <td class="text-nowrap" style="color: #374151">${sizeText}</td>
                                 <td>
-                                    ${mag.hd ? '<span class="badge bg-primary">HD</span>' : ''}
-                                    ${mag.cnsub ? '<span class="badge bg-warning text-dark">字幕</span>' : ''}
+                                    ${mag.hd ? '<span class="badge magnet-badge-hd me-1">HD</span>' : ''}
+                                    ${mag.cnsub ? '<span class="badge magnet-badge-sub">字幕</span>' : ''}
                                 </td>
                                 <td>
-                                    <button class="btn btn-sm btn-success" style="width: 100px;" onclick="copyText('${link}', this)">复制磁链</button>
+                                    <button class="btn btn-sm btn-brand" style="width: 100px;" onclick="copyText('${link}', this)">复制磁链</button>
                                 </td>
-                                <td class="text-nowrap">${mag.created_at}</td>
+                                <td class="text-nowrap magnet-time" style="color: #374151">${mag.created_at}</td>
                             </tr>
                         `;
                     });
@@ -1063,7 +1509,7 @@
                 container.innerHTML = '';
                 lists.forEach(list => {
                     const hasMovie = list.has_movie || false;
-                    const btnClass = hasMovie ? 'btn-danger' : 'btn-outline-success';
+                    const btnClass = hasMovie ? 'btn-danger-soft' : 'btn-success-soft';
                     const btnText = hasMovie ? '移除' : '加入';
                     const item = document.createElement('div');
                     item.className = 'd-flex justify-content-between align-items-center py-2 border-bottom';
@@ -1107,7 +1553,7 @@
                 // 切换按钮状态
                 const newHas = !currentHas;
                 btn.dataset.has = newHas ? 'true' : 'false';
-                btn.className = newHas ? 'btn btn-sm btn-danger' : 'btn btn-sm btn-outline-success';
+                btn.className = newHas ? 'btn btn-sm btn-danger-soft' : 'btn btn-sm btn-success-soft';
                 btn.innerText = newHas ? '移除' : '加入';
                 // 可以显示短暂的成功提示（可选）
             } catch (e) {
@@ -1164,12 +1610,12 @@
             // 想看按钮
             if (currentReviewStatus === 'want_watch') {
                 watchBtn.textContent = '已想看';
-                watchBtn.className = 'btn btn-danger';
+                watchBtn.className = 'btn btn-danger-soft';
                 watchBtn.dataset.reviewId = currentReviewId;
                 watchBtn.dataset.action = 'remove';   // ← 添加这一行
             } else {
                 watchBtn.textContent = '想看';
-                watchBtn.className = 'btn btn-outline-primary';
+                watchBtn.className = 'btn btn-warning-soft';
                 delete watchBtn.dataset.reviewId;
                 watchBtn.dataset.action = 'add';      // ← 添加这一行
             }
@@ -1177,11 +1623,11 @@
             // 看过按钮（无需 action，因为统一弹出面板）
             if (currentReviewStatus === 'watched') {
                 watchedBtn.textContent = '已看过';
-                watchedBtn.className = 'btn btn-danger';
+                watchedBtn.className = 'btn btn-danger-soft';
                 watchedBtn.dataset.reviewId = currentReviewId;
             } else {
                 watchedBtn.textContent = '看过';
-                watchedBtn.className = 'btn btn-outline-success';
+                watchedBtn.className = 'btn btn-success-soft';
                 delete watchedBtn.dataset.reviewId;
             }
         }
@@ -1366,15 +1812,20 @@
 
                 lists.forEach(list => {
                     const col = document.createElement('div');
-                    col.className = 'col-md-3 col-6';
+                    col.className = 'col-md-3 col-6'; 
                     col.innerHTML = `
-                        <a href="/list/${list.id}" target="_blank" class="card-link-block text-decoration-none" title="${list.name}">
-                            <div class="card h-100 shadow-sm border-0 list-hover">
-                                <div class="card-body">
-                                    <h6 class="card-title">${list.name}</h6>
-                                    <p class="card-text small text-muted">
-                                        📀 ${list.movies_count} 部 &nbsp;|&nbsp; 👁️ ${list.views_count} &nbsp;|&nbsp; ⭐ ${list.collections_count}
-                                    </p>
+                        <a href="/list/${list.id}" target="_blank" class="card-link-block text-decoration-none h-100 d-block" title="${list.name}">
+                            <div class="card h-100">
+                                <div class="card-body p-3 d-flex align-items-center">
+                                    <div class="related-list-icon">📂</div>
+                                    <div class="overflow-hidden flex-grow-1">
+                                        <div class="related-list-title" title="${list.name}">${list.name}</div>
+                                        <div class="related-list-meta text-truncate">
+                                            <span>📀 ${list.movies_count}</span>
+                                            <span>👁️ ${list.views_count}</span>
+                                            <span>⭐ ${list.collections_count}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </a>
@@ -1712,7 +2163,7 @@
                         </div>
                         <small class="text-muted">${dateStr}</small>
                     </div>
-                    <p class="mb-0 text-break" style="padding-bottom: 8px; padding-top: 5px; line-height: 26px; white-space: pre-wrap;">${r.content}</p>
+                    <p class="mb-0 text-break" style="padding-bottom: 2px; padding-top: 4px; line-height: 22px; white-space: pre-wrap;">${r.content}</p>
                 `;
                 container.appendChild(item);
             });

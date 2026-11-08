@@ -4,7 +4,7 @@
 
 {% block styles %}
     <style>
-        /* 现代化分类标签 */
+        /* ===== 现代化分类标签 ===== */
         .btn-tab {
             background-color: #f1f3f5 !important;
             color: #495057 !important;
@@ -13,25 +13,26 @@
             border-radius: 30px !important;
             font-weight: 500;
             font-size: 0.95rem;
-            transition: all 0.25s ease;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .btn-tab:hover {
-            background-color: #e9ecef !important;
-            color: #212529 !important;
+            background-color: #f5f6ff !important;
+            color: #4f46e5 !important;
+            transform: translateY(-1px);
         }
         .btn-tab.active {
-            background-color: #0d6efd !important;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
             color: #fff !important;
-            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3) !important;
+            border-color: transparent !important;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35) !important;
         }
         /* 强制清除未激活标签的背景色和边框色 */
         .btn-tab:not(.active) {
             background-color: transparent !important;
             border-color: transparent !important;
-            color: inherit; /* 保持文字原本颜色 */
+            color: inherit;
         }
-
-        /* 消除按钮点击后的焦点外发光和点击瞬间的默认样式 */
+        /* 消除按钮点击后的焦点外发光 */
         .btn-tab:focus,
         .btn-tab:active {
             box-shadow: none !important;
@@ -40,13 +41,13 @@
 
         /* 演员卡片样式 */
         .actor-card {
-            transition: all 0.2s ease;
+            transition: all 0.25s ease;
             border-radius: 12px;
-            border: 2px solid transparent !important; /* 为选中状态预留边框 */
+            border: 2px solid transparent !important;
         }
         .actor-card:hover {
             transform: translateY(-4px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.08) !important;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.15) !important;
         }
         .actor-avatar {
             width: 100px;
@@ -75,19 +76,208 @@
 
         /* ========== 编辑模式下的特殊样式 ========== */
         .edit-mode .actor-card:hover {
-            transform: none; /* 编辑模式下取消浮动动画 */
+            transform: none;
             box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
         }
         .edit-mode .card-checkbox-wrapper {
             opacity: 1;
             visibility: visible;
         }
+        /* 选中卡片的状态改为紫蓝主题 */
         .edit-mode .actor-card.selected-card {
-            border-color: #dc3545 !important;
-            background-color: #fff5f5 !important;
+            border-color: #667eea !important;
+            background-color: #f5f6ff !important;
         }
         .edit-mode .actor-card.selected-card .actor-avatar {
-            border-color: #dc3545;
+            border-color: #667eea;
+        }
+
+                /* ===== 品牌主按钮 ===== */
+        .btn-brand {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            border: none !important;
+            color: #fff !important;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-brand:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.5);
+            color: #fff !important;
+        }
+
+        /* ===== 品牌线框按钮 ===== */
+        .btn-brand-outline {
+            background: #fff !important;
+            border: 1px solid #c7d2fe !important;
+            color: #4f46e5 !important;
+            font-weight: 500;
+            transition: all 0.25s ease;
+        }
+        .btn-brand-outline:hover {
+            background: #f5f6ff !important;
+            border-color: #667eea !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+
+        /* ===== 柔和红（批量删除） ===== */
+        .btn-danger-soft {
+            background: #fef2f2 !important;
+            border: 1px solid #fecaca !important;
+            color: #dc2626 !important;
+            font-weight: 500;
+            transition: all 0.25s ease;
+        }
+        .btn-danger-soft:hover {
+            background: #fee2e2 !important;
+            border-color: #fca5a5 !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+        }
+
+        /* 全局覆盖原本的蓝色 Spinner */
+        .text-primary { color: #667eea !important; }
+
+        /* ===== 分页容器 ===== */
+        #pagination {
+            margin-top: 2rem !important;
+        }
+
+        #paginationList {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px;
+            align-items: center;
+        }
+
+        #paginationList .page-item {
+            margin: 0;
+        }
+
+        #paginationList .page-item .page-link {
+            min-width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 12px;
+            margin-left: 0 !important;
+            border: 1px solid #e9ecef;
+            border-radius: 10px !important;
+            background: #fff;
+            color: #495057;
+            font-weight: 500;
+            font-size: 0.9rem;
+            line-height: 1;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+            text-decoration: none;
+        }
+
+        #paginationList .page-item .page-link:hover {
+            background: #eef2ff;
+            border-color: #c7d2fe;
+            color: #4f46e5;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.12);
+        }
+
+        #paginationList .page-item.active .page-link {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+        }
+
+        #paginationList .page-item.disabled .page-link {
+            background: #f8f9fa;
+            border-color: #f1f3f5;
+            color: #adb5bd;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        #paginationList .page-item.disabled .page-link:hover {
+            background: #f8f9fa;
+            border-color: #f1f3f5;
+            color: #adb5bd;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* ===== 跳页区 ===== */
+        #paginationList .jump-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: 10px;
+        }
+
+        #jumpPageInput {
+            width: 64px;
+            height: 40px;
+            border-radius: 10px !important;
+            border: 1px solid #e9ecef !important;
+            text-align: center;
+            font-weight: 500;
+            color: #495057;
+            transition: all 0.2s;
+            padding: 0 !important;
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+
+        #jumpPageInput::-webkit-outer-spin-button,
+        #jumpPageInput::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        #jumpPageInput:focus {
+            border-color: #a5b4fc !important;
+            box-shadow: 0 0 0 3px rgba(165, 180, 252, 0.25);
+            outline: none;
+        }
+
+        #paginationList .jump-btn {
+            height: 40px;
+            padding: 0 16px;
+            border-radius: 10px !important;
+            border: 1px solid #c7d2fe;
+            background: #fff;
+            color: #4f46e5;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            margin-left: 0 !important;
+        }
+
+        #paginationList .jump-btn:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* ===== 小屏适配 ===== */
+        @media (max-width: 576px) {
+            #paginationList { gap: 4px; }
+            #paginationList .page-item .page-link {
+                min-width: 34px;
+                height: 34px;
+                padding: 0 8px;
+                font-size: 0.82rem;
+            }
+            #jumpPageInput,
+            #paginationList .jump-btn {
+                height: 34px;
+            }
+            #jumpPageInput { width: 54px; }
         }
     </style>
 {% endblock %}
@@ -108,7 +298,7 @@
     <div class="text-muted small" id="totalCountDisplay">加载中...</div>
 
     <div>
-        <button id="btnEnterEdit" class="btn btn-outline-primary btn-sm rounded-pill px-4" onclick="toggleEditMode()">
+        <button id="btnEnterEdit" class="btn btn-brand-outline btn-sm rounded-pill px-4" onclick="toggleEditMode()">
             ✏️ 批量编辑
         </button>
 
@@ -117,7 +307,7 @@
                 <input class="form-check-input" type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" style="cursor: pointer;">
                 <label class="form-check-label fw-semibold user-select-none" for="selectAll" style="cursor: pointer;">全选</label>
             </div>
-            <button class="btn btn-danger btn-sm rounded-pill px-4 shadow-sm" id="btnBatchDelete" onclick="openBatchUncollectModal()" disabled>
+            <button class="btn btn-danger-soft btn-sm rounded-pill px-4 shadow-sm" id="btnBatchDelete" onclick="openBatchUncollectModal()" disabled>
                 🗑️ 删除 (<span id="selectCount">0</span>)
             </button>
             <button class="btn btn-light btn-sm rounded-pill border px-4 shadow-sm" onclick="toggleEditMode()">
@@ -150,7 +340,7 @@
             </div>
             <div class="modal-footer border-top-0 justify-content-center pt-0 pb-3">
                 <button type="button" class="btn btn-light btn-sm px-3" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-danger btn-sm px-3" id="confirmBatchUncollectBtn">确认取消</button>
+                <button type="button" class="btn btn-danger-soft btn-sm px-3" id="confirmBatchUncollectBtn">确认取消</button>
             </div>
         </div>
     </div>
@@ -192,6 +382,7 @@
                 if (actors.length === 0) {
                     container.innerHTML = '<div class="col-12 text-center text-muted py-5">该分类下暂无收藏的演员 ╮(╯▽╰)╭</div>';
                     totalCountEl.innerText = '共 0 位演员';
+                    renderPagination(page, 0);   // ← 空数据也渲染分页
                     return;
                 }
 
@@ -202,14 +393,14 @@
                     const gender = actor.gender || 0;
                     const noAvatarImg = gender === 1 ? `{{ url_for('static', filename='images/male-avatar.jpg') }}` : `{{ url_for('static', filename='images/female-avatar.jpg') }}`;
 
-                    const avatar = actor.avatar_url ? `/api/image_proxy?url=${encodeURIComponent(actor.avatar_url)}` : noAvatarImg;
+                    const avatar = actor.avatar_url ? `/api/image?url=${encodeURIComponent(actor.avatar_url)}` : noAvatarImg;
                     const detailUrl = `/actor/${actor.id}`;
 
                     let typeBadge = '';
-                    if (actor.type === 0) typeBadge = '<span class="badge bg-secondary-subtle text-secondary small">有码</span>';
-                    else if (actor.type === 1) typeBadge = '<span class="badge bg-dark-subtle text-dark small">无码</span>';
-                    else if (actor.type === 2) typeBadge = '<span class="badge bg-primary-subtle text-primary small">欧美</span>';
-                    else if (actor.type === 3) typeBadge = '<span class="badge bg-warning-subtle text-dark small">FC2</span>';
+                    if (actor.type === 0) typeBadge = '<span class="badge bg-danger-subtle text-secondary small">有码</span>';
+                    else if (actor.type === 1) typeBadge = '<span class="badge bg-success-subtle text-secondary small">无码</span>';
+                    else if (actor.type === 2) typeBadge = '<span class="badge bg-primary-subtle text-secondary small">欧美</span>';
+                    else if (actor.type === 3) typeBadge = '<span class="badge bg-warning-subtle text-secondary small">FC2</span>';
 
                     html += `
                         <div class="col-xl-2 col-md-6 mb-4">
@@ -231,7 +422,6 @@
                 });
                 container.innerHTML = html;
                 renderPagination(page, actors.length);
-                paginationEl.classList.remove('d-none');
             } else {
                 container.innerHTML = `
                     <div class="col-12 text-center text-danger py-5">
@@ -240,6 +430,7 @@
                     </div>
                 `;
                 totalCountEl.innerText = '加载失败';
+                paginationEl.classList.add('d-none');   // ← 补上
             }
         } catch (e) {
             container.innerHTML = `
@@ -249,6 +440,7 @@
                 </div>
             `;
             totalCountEl.innerText = '网络错误';
+            paginationEl.classList.add('d-none');   // ← 补上
         }
     }
 
@@ -355,31 +547,83 @@
         const paginationUl = document.getElementById('paginationList');
         paginationUl.innerHTML = '';
 
+        // 本页不足 limit(30) 条，视为最后一页
         const isLastPage = loadedCount < limit;
-        const prevDisabled = currentPage <= 1 ? 'disabled' : '';
+
+        // 首页
         paginationUl.innerHTML += `
-            <li class="page-item ${prevDisabled}">
-                <a class="page-link text-dark" href="javascript:void(0)" onclick="if(${currentPage} > 1) loadFavorites(${currentPage - 1})">上一页</a>
+            <li class="page-item ${currentPage <= 1 ? 'disabled' : ''}">
+                <a class="page-link" href="javascript:void(0)"
+                onclick="if(${currentPage} > 1) loadFavorites(1)" title="首页">«</a>
             </li>
         `;
 
-        let startPage = Math.max(1, currentPage - 2);
-        let endPage = isLastPage ? currentPage : currentPage + 2;
+        // 上一页
+        paginationUl.innerHTML += `
+            <li class="page-item ${currentPage <= 1 ? 'disabled' : ''}">
+                <a class="page-link" href="javascript:void(0)"
+                onclick="if(${currentPage} > 1) loadFavorites(${currentPage - 1})" title="上一页">‹</a>
+            </li>
+        `;
+
+        // 页码窗口
+        const startPage = Math.max(1, currentPage - 2);
+        const endPage = isLastPage ? currentPage : currentPage + 2;
+
+        // 左省略号
+        if (startPage > 1) {
+            paginationUl.innerHTML += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+        }
 
         for (let i = startPage; i <= endPage; i++) {
             if (i === currentPage) {
-                paginationUl.innerHTML += `<li class="page-item active"><span class="page-link border-0 shadow-sm">${i}</span></li>`;
+                paginationUl.innerHTML += `<li class="page-item active"><span class="page-link">${i}</span></li>`;
             } else {
-                paginationUl.innerHTML += `<li class="page-item"><a class="page-link text-dark" href="javascript:void(0)" onclick="loadFavorites(${i})">${i}</a></li>`;
+                paginationUl.innerHTML += `
+                    <li class="page-item">
+                        <a class="page-link" href="javascript:void(0)" onclick="loadFavorites(${i})">${i}</a>
+                    </li>
+                `;
             }
         }
 
-        const nextDisabled = isLastPage ? 'disabled' : '';
+        // 右省略号：仅当不是最后一页
+        if (!isLastPage) {
+            paginationUl.innerHTML += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+        }
+
+        // 下一页
         paginationUl.innerHTML += `
-            <li class="page-item ${nextDisabled}">
-                <a class="page-link text-dark" href="javascript:void(0)" onclick="if(!${isLastPage}) loadFavorites(${currentPage + 1})">下一页</a>
+            <li class="page-item ${isLastPage ? 'disabled' : ''}">
+                <a class="page-link" href="javascript:void(0)"
+                onclick="if(!${isLastPage}) loadFavorites(${currentPage + 1})" title="下一页">›</a>
             </li>
         `;
+
+        // 跳页
+        paginationUl.innerHTML += `
+            <li class="jump-wrap">
+                <input type="number" id="jumpPageInput" value="${currentPage + 1}" min="1" placeholder="页码">
+                <button class="jump-btn" onclick="jumpToPage()">跳转</button>
+            </li>
+        `;
+
+        document.getElementById('pagination').classList.remove('d-none');
+
+        // 跳页输入框绑定回车
+        const jumpInput = paginationUl.querySelector('#jumpPageInput');
+        if (jumpInput) {
+            jumpInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') jumpToPage();
+            });
+        }
+    }
+
+    // 新增：跳页函数（原文件没有）
+    function jumpToPage() {
+        const val = document.getElementById('jumpPageInput').value;
+        const p = parseInt(val, 10);
+        if (p && p > 0) loadFavorites(p);
     }
 
     window.onload = function() {

@@ -13,7 +13,8 @@
         overflow-x: auto;
         white-space: nowrap;
         -webkit-overflow-scrolling: touch;
-        padding-bottom: 5px;
+        padding-top: 4px;    /* 👈 新增：给顶部留出位移和阴影的空间 */
+        padding-bottom: 6px; /* 原为5px，稍微加大一点，防止底部阴影被切 */
     }
     .tabs-scroll-container::-webkit-scrollbar { display: none; } /* 隐藏滚动条 */
 
@@ -24,24 +25,29 @@
         border-radius: 50px !important;
         font-size: 0.9rem;
         font-weight: 500;
-        color: #495057 !important;
+        color: #4b5563 !important;
         background: #fff !important;
-        border: 1px solid #dee2e6 !important;
-        transition: all 0.25s ease;
+        border: 1px solid #e5e7eb !important;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         text-decoration: none;
         cursor: pointer;
         user-select: none;
     }
+    
+    /* 未选中悬停（淡紫底、紫字） */
     .review-tab-btn:hover {
-        background: #f1f3f5 !important;
-        color: #0d6efd !important;
-        border-color: #c5d7f2 !important;
+        background: #f5f6ff !important;
+        color: #4f46e5 !important;
+        border-color: #c7d2fe !important;
+        transform: translateY(-1px);
     }
+    
+    /* 选中状态（品牌紫蓝渐变、白字、紫蓝光晕） */
     .review-tab-btn.active {
-        background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%) !important;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
         color: #fff !important;
         border-color: transparent !important;
-        box-shadow: 0 4px 12px rgba(13, 110, 253, 0.25) !important;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35) !important;
     }
 
     /* ===== 短评卡片信息流样式 ===== */
@@ -58,25 +64,24 @@
 		overflow: hidden;
 		will-change: transform; /* 开启硬件加速，使动画更丝滑 */
 	}
-    .review-feed-card:hover {
-		transform: translateY(-1px) scale(1.0); /* 轻微上浮并略微放大 */
-		box-shadow: 0 16px 40px rgba(0, 0, 0, 0.08) !important; /* 阴影变深变大 */
-		border-color: rgba(13, 110, 253, 0.25);
-	}
+    .movie-sub-link:hover { 
+        /* 👇 改为品牌紫蓝 */
+        color: #4f46e5; 
+    }
 
     /* 核心解法：宽幅小封面的等比容器 */
     .thumb-ratio-box {
         position: relative;
         width: 100%;
-        aspect-ratio: 16 / 10; /* 强制锁定宽矩形 */
+        height: 150px;
         border-radius: 8px;
         overflow: hidden;
-        background-color: #eaeeef;
+        background-color: #fff;
     }
     .thumb-ratio-box img {
         width: 100%;
         height: 100%;
-        object-fit: cover; /* 居中等比裁切填满 */
+        object-fit: contain;       /* ← 完整显示，不裁切 */
         transition: transform 0.3s ease;
     }
 
@@ -113,6 +118,146 @@
 	.review-feed-card:hover .thumb-ratio-box img {
 		transform: scale(1.03); /* 稍微调大一点配合卡片悬浮 */
 	}
+
+    /* ===== 分页容器 ===== */
+    #paginationWrap {
+        margin-top: 2rem !important;
+    }
+
+    #paginationList {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 6px;
+        align-items: center;
+    }
+
+    #paginationList .page-item {
+        margin: 0;
+    }
+
+    #paginationList .page-item .page-link {
+        min-width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 12px;
+        margin-left: 0 !important;
+        border: 1px solid #e9ecef;
+        border-radius: 10px !important;
+        background: #fff;
+        color: #495057;
+        font-weight: 500;
+        font-size: 0.9rem;
+        line-height: 1;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+        text-decoration: none;
+    }
+
+    #paginationList .page-item .page-link:hover {
+        background: #eef2ff;
+        border-color: #c7d2fe;
+        color: #4f46e5;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(79, 70, 229, 0.12);
+    }
+
+    #paginationList .page-item.active .page-link {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-color: transparent;
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+    }
+
+    #paginationList .page-item.disabled .page-link {
+        background: #f8f9fa;
+        border-color: #f1f3f5;
+        color: #adb5bd;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+    }
+
+    #paginationList .page-item.disabled .page-link:hover {
+        background: #f8f9fa;
+        border-color: #f1f3f5;
+        color: #adb5bd;
+        transform: none;
+        box-shadow: none;
+    }
+
+    /* ===== 跳页区 ===== */
+    #paginationList .jump-wrap {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-left: 10px;
+    }
+
+    #paginationList #jumpNum {
+        width: 64px;
+        height: 40px;
+        border-radius: 10px !important;
+        border: 1px solid #e9ecef !important;
+        text-align: center;
+        font-weight: 500;
+        color: #495057;
+        transition: all 0.2s;
+        padding: 0 !important;
+        -moz-appearance: textfield;
+        appearance: textfield;
+    }
+
+    #paginationList #jumpNum::-webkit-outer-spin-button,
+    #paginationList #jumpNum::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    #paginationList #jumpNum:focus {
+        border-color: #a5b4fc !important;
+        box-shadow: 0 0 0 3px rgba(165, 180, 252, 0.25);
+        outline: none;
+    }
+
+    #paginationList .jump-btn {
+        height: 40px;
+        padding: 0 16px;
+        border-radius: 10px !important;
+        border: 1px solid #c7d2fe;
+        background: #fff;
+        color: #4f46e5;
+        font-weight: 500;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+        margin-left: 0 !important;
+    }
+
+    #paginationList .jump-btn:hover {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-color: transparent;
+        color: #fff;
+        box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+        transform: translateY(-1px);
+    }
+
+    /* ===== 小屏适配 ===== */
+    @media (max-width: 576px) {
+        #paginationList { gap: 4px; }
+        #paginationList .page-item .page-link {
+            min-width: 34px;
+            height: 34px;
+            padding: 0 8px;
+            font-size: 0.82rem;
+        }
+        #paginationList #jumpNum,
+        #paginationList .jump-btn {
+            height: 34px;
+        }
+        #paginationList #jumpNum { width: 54px; }
+    }
 </style>
 {% endblock %}
 
@@ -188,61 +333,64 @@
 
             if (list.length === 0) {
                 container.innerHTML = `<div class="col-12 text-center text-muted py-5">暂无短评数据</div>`;
-                return;
-            }
+            } else {
 
-            list.forEach(item => {
-                const m = item.movie || {};
-                const uColor = getUserColor(item.watched_count || 0);
-                const scoreRound = Math.round(item.score || 0);
-                const stars = scoreRound > 0 ? ('★'.repeat(scoreRound) + '☆'.repeat(5 - scoreRound)) : '';
-                const titleText = m.title || m.origin_title || '未知影片';
-                let titleNumberText = m.number ? `${m.number} ` : '';
+                list.forEach(item => {
+                    const m = item.movie || {};
+                    const uColor = getUserColor(item.watched_count || 0);
+                    const scoreRound = Math.round(item.score || 0);
+                    const stars = scoreRound > 0 ? ('★'.repeat(scoreRound) + '☆'.repeat(5 - scoreRound)) : '';
+                    const titleText = m.title || m.origin_title || '未知影片';
+                    let titleNumberText = m.number ? `${m.number} ` : '';
 
-                const thumb = `/api/image_proxy?url=${encodeURIComponent(m.thumb_url)}`;
+                    const tu = m.thumb_url || '';
+                    const newUrl = tu.replace("small_covers", "covers");
 
-                const cardHtml = `
-                    <div class="col-12">
-                        <div class="review-feed-card p-3 shadow-sm">
-                            <div class="row g-3 align-items-stretch">
-                                <div class="col-md-2 col-4 mt-4">
-                                    <a href="/movie/${m.id}" target="_blank">
-                                        <div class="thumb-ratio-box">
-                                            <img src="${thumb}" onerror="this.src='{{ url_for('static', filename='images/noimage.jpg') }}'" alt="${m.number}" title="${titleNumberText}${titleText}">
-                                            <span class="code-sticker">${m.number || 'JAV'}</span>
-                                        </div>
-                                    </a>
-                                </div>
+                    const thumb = `/api/image?url=${encodeURIComponent(newUrl)}`;
 
-                                <div class="col-md-10 col-8 d-flex flex-column py-1">
-
-                                    <div class="flex-grow-1">
-                                        <div class="d-flex justify-content-between align-items-center mb-1 flex-wrap">
-                                            <div class="d-flex align-items-center">
-                                                <span style="color:${uColor}; font-size:16px; cursor: default;" title="看过${item.watched_count}部影片">${item.username}</span>
-                                                <span class="text-warning ms-2" style="font-size:20px; letter-spacing:1px;">${stars}</span>
+                    const cardHtml = `
+                        <div class="col-12">
+                            <div class="review-feed-card p-3 shadow-sm">
+                                <div class="row g-3 align-items-stretch">
+                                    <div class="col-md-2 col-4 mt-4">
+                                        <a href="/movie/${m.id}" target="_blank">
+                                            <div class="thumb-ratio-box">
+                                                <img src="${thumb}" onerror="this.src='{{ url_for('static', filename='images/noimage.jpg') }}'" alt="${m.number}" title="${titleNumberText}${titleText}">
+                                                <span class="code-sticker">${m.number || ''}</span>
                                             </div>
-                                            <small class="text-muted" style="font-size: 0.82rem;">${formatTimeFriendly(item.created_at)}</small>
-                                        </div>
-                                        <div class="review-content my-1" style="white-space: pre-wrap;">${item.content || '（用户未填写文字）'}</div>
-                                    </div>
-
-                                    <div class="d-flex justify-content-between align-items-center pt-2 mt-2 border-top" style="border: none!important;">
-                                        <a href="/movie/${m.id}" target="_blank" class="movie-sub-link text-truncate pe-2" style="max-width: 85%;">
-                                            🎬 <span title="${titleNumberText}${titleText}">${titleNumberText}${titleText}</span>
                                         </a>
-                                        <span class="badge text-muted small fw-normal" title="点赞" data-review-id="${item.id}" data-liked="${item.liked}" onclick="toggleLike(this)" style="font-size: 0.82rem;cursor: pointer;"><span style="font-size: 1.15rem;">👍</span> <span class="like-count" style="margin-left: -5px;font-size: 0.9rem;">${item.likes_count || 0}</span></span>
-
-
                                     </div>
 
+                                    <div class="col-md-10 col-8 d-flex flex-column py-1">
+
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex justify-content-between align-items-center mb-1 flex-wrap">
+                                                <div class="d-flex align-items-center">
+                                                    <span style="color:${uColor}; font-size:16px; cursor: default;" title="看过${item.watched_count}部影片">${item.username}</span>
+                                                    <span class="text-warning ms-2" style="font-size:20px; letter-spacing:1px;">${stars}</span>
+                                                </div>
+                                                <small class="text-muted" style="font-size: 0.82rem;">${formatTimeFriendly(item.created_at)}</small>
+                                            </div>
+                                            <div class="review-content my-1" style="white-space: pre-wrap;">${item.content || '（用户未填写文字）'}</div>
+                                        </div>
+
+                                        <div class="d-flex justify-content-between align-items-center pt-2 mt-2 border-top" style="border: none!important;">
+                                            <a href="/movie/${m.id}" target="_blank" class="movie-sub-link text-truncate pe-2" style="max-width: 85%;">
+                                                🎬 <span title="${titleNumberText}${titleText}">${titleNumberText}${titleText}</span>
+                                            </a>
+                                            <span class="badge text-muted small fw-normal" title="点赞" data-review-id="${item.id}" data-movie-id="${m.id}" data-liked="${item.liked}" onclick="toggleLike(this)" style="font-size: 0.82rem;cursor: pointer;"><span style="font-size: 1.15rem;">👍</span> <span class="like-count" style="margin-left: -5px;font-size: 0.9rem;">${item.likes_count || 0}</span></span>
+
+
+                                        </div>
+
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                `;
-                container.insertAdjacentHTML('beforeend', cardHtml);
-            });
+                    `;
+                    container.insertAdjacentHTML('beforeend', cardHtml);
+                });
+            }
 
             renderPagination(page, list.length);
 
@@ -254,6 +402,7 @@
                     <div><button class="btn btn-primary mt-2" onclick="loadReviewsData(${currentPage})">重试</button></div>
                 </div>
             `;
+            document.getElementById('paginationWrap').classList.add('d-none');   // ← 补上
         }
     }
 
@@ -261,35 +410,77 @@
     function renderPagination(page, loadedCount) {
         const ul = document.getElementById('paginationList');
         ul.innerHTML = '';
+
+        // 本页不足 limit 条，视为最后一页
         const isLastPage = loadedCount < limit;
 
+        // 首页
         ul.innerHTML += `
             <li class="page-item ${page <= 1 ? 'disabled' : ''}">
-                <a class="page-link" href="javascript:void(0)" onclick="if(${page}>1) loadReviewsData(${page - 1})">上一页</a>
+                <a class="page-link" href="javascript:void(0)"
+                onclick="if(${page} > 1) loadReviewsData(1)" title="首页">«</a>
             </li>
         `;
 
-        let start = Math.max(1, page - 2);
-        let end = isLastPage ? page : page + 2;
+        // 上一页
+        ul.innerHTML += `
+            <li class="page-item ${page <= 1 ? 'disabled' : ''}">
+                <a class="page-link" href="javascript:void(0)"
+                onclick="if(${page} > 1) loadReviewsData(${page - 1})" title="上一页">‹</a>
+            </li>
+        `;
 
-        for (let i = start; i <= end; i++) {
-            ul.innerHTML += `
-                <li class="page-item ${i === page ? 'active' : ''}">
-                    <a class="page-link" href="javascript:void(0)" onclick="loadReviewsData(${i})">${i}</a>
-                </li>
-            `;
+        // 页码窗口
+        const start = Math.max(1, page - 2);
+        const end = isLastPage ? page : page + 2;
+
+        // 左省略号
+        if (start > 1) {
+            ul.innerHTML += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
         }
 
+        for (let i = start; i <= end; i++) {
+            if (i === page) {
+                ul.innerHTML += `<li class="page-item active"><span class="page-link">${i}</span></li>`;
+            } else {
+                ul.innerHTML += `
+                    <li class="page-item">
+                        <a class="page-link" href="javascript:void(0)" onclick="loadReviewsData(${i})">${i}</a>
+                    </li>
+                `;
+            }
+        }
+
+        // 右省略号：仅当不是最后一页
+        if (!isLastPage) {
+            ul.innerHTML += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+        }
+
+        // 下一页
         ul.innerHTML += `
             <li class="page-item ${isLastPage ? 'disabled' : ''}">
-                <a class="page-link" href="javascript:void(0)" onclick="if(!${isLastPage}) loadReviewsData(${page + 1})">下一页</a>
-            </li>
-            <li class="page-item ms-2 d-flex align-items-center">
-                <input type="number" id="jumpNum" class="form-control form-control-sm text-center px-1" style="width: 55px; height: 38px;" value="${page + 1}" min="1">
-                <button class="btn btn-outline-primary ms-1" style="height: 38px;" onclick="jumpPageAction()">跳转</button>
+                <a class="page-link" href="javascript:void(0)"
+                onclick="if(!${isLastPage}) loadReviewsData(${page + 1})" title="下一页">›</a>
             </li>
         `;
+
+        // 跳页
+        ul.innerHTML += `
+            <li class="jump-wrap">
+                <input type="number" id="jumpNum" value="${page + 1}" min="1" placeholder="页码">
+                <button class="jump-btn" onclick="jumpPageAction()">跳转</button>
+            </li>
+        `;
+
         document.getElementById('paginationWrap').classList.remove('d-none');
+
+        // 给跳页输入框绑定回车
+        const jumpInput = ul.querySelector('#jumpNum');
+        if (jumpInput) {
+            jumpInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') jumpPageAction();
+            });
+        }
     }
 
     function jumpPageAction() {
@@ -299,7 +490,7 @@
 
     async function toggleLike(btn) {
         const reviewId = btn.dataset.reviewId;
-        const movieId = window.location.pathname.split('/').pop();
+        const movieId = btn.dataset.movieId;
         const isLiked = btn.dataset.liked === 'true';
         const countSpan = btn.querySelector('.like-count');
         let currentCount = parseInt(countSpan.innerText, 10) || 0;
@@ -323,8 +514,10 @@
             btn.title = '已点赞';
         } catch (e) {
             alert('点赞失败：' + e.message);
-            if (!e.success && e.message.includes('你已經點過贊了')) {
+            if (e.message.includes('你已經點過贊了')) {
                 btn.title = '已点赞';
+                btn.dataset.liked = 'true';
+                // 保持 disabled，表示"已赞"
             } else {
                 btn.disabled = false;
             }

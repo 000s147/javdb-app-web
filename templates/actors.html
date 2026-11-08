@@ -4,8 +4,11 @@
 
 {% block styles %}
     <style>
-        .actor-card { transition: transform 0.2s; border: 1px solid #e9ecef; }
-        .actor-card:hover { transform: scale(1.02); }
+        .actor-card { transition: transform 0.25s ease, box-shadow 0.25s ease; border: 1px solid #e9ecef; }
+        .actor-card:hover { transform: translateY(-4px); box-shadow: 0 10px 20px rgba(102, 126, 234, 0.15); border-color: #c7d2fe; }
+        
+        .recommend-card { transition: transform 0.25s ease, box-shadow 0.25s ease; border: 1px solid #e9ecef; }
+        .recommend-card:hover { transform: translateY(-4px); box-shadow: 0 10px 20px rgba(102, 126, 234, 0.15); border-color: #c7d2fe; }
         .actor-card img {
             width: 220px;
             height: 220px;
@@ -90,7 +93,7 @@
             text-align: center;
             font-weight: 600;
             font-size: 0.9rem;
-            color: #0d6efd;
+            color: #4f46e5; /* 品牌紫蓝 */
         }
         .slider-group .range-sep {
             color: #999;
@@ -106,16 +109,15 @@
             margin-top: 20px;
         }
         /* 推荐卡片样式 */
-        .recommend-card { transition: transform 0.2s; border: 1px solid #e9ecef; }
-        .recommend-card:hover { transform: scale(1.02); }
         .recommend-card img { width: 160px; height: 160px; object-fit: cover; }
         .group-title {
             font-weight: 600;
             margin-top: 30px;
             margin-bottom: 20px;
-            color: #0d6efd;
-            border-bottom: 2px solid #0d6efd;
+            color: #374151; /* 高级深灰 */
+            border-bottom: 1px solid #e5e7eb;
             padding-bottom: 6px;
+            font-size: 1.1rem;
         }
         .card-link-block {
             margin: 0 auto;
@@ -123,9 +125,27 @@
         .nav-link:hover {
             transition: none !important;
         }
+        /* 选中的 Tab 样式 */
+        .nav-tabs .nav-link.active {
+            color: #4f46e5 !important; /* 文字变紫蓝 */
+            font-weight: 600;
+            border-color: transparent transparent transparent !important; /* 去掉默认边框 */
+            background: transparent;
+            border-bottom: 3px solid #667eea !important; /* 底部紫蓝粗线 */
+        }
         /* 彻底清除导航选项卡切换时的闪烁、焦点残留和过渡动画 */
         .nav-tabs .nav-link {
-            transition: none !important; /* 禁用所有属性的动画 */
+            color: #6b7280;
+            font-weight: 500;
+            border: none;
+            padding: 10px 16px;
+            margin-right: 4px;
+            border-bottom: 3px solid transparent; /* 预留边框空间防抖动 */
+        }
+
+        .nav-tabs .nav-link:hover {
+            color: #4f46e5;
+            background: transparent;
         }
 
         /* 强制清除未激活标签的背景色和边框色 */
@@ -162,11 +182,11 @@
             z-index: 1;
         }
 
-        /* 两个滑块中间的蓝色选中区域 */
+        /* 两个滑块中间的紫色选中区域 */
         .dual-range-wrapper .slider-fill {
             position: absolute;
             height: 6px;
-            background-color: #0d6efd;
+            background: linear-gradient(90deg, #667eea, #764ba2); /* 品牌渐变 */
             border-radius: 3px;
             z-index: 2;
         }
@@ -186,14 +206,20 @@
         /* 自定义滑块圆点 (Webkit/Chrome/Edge) */
         .dual-range-wrapper input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            pointer-events: all; /* 恢复滑块自身的交互 */
+            pointer-events: all;
             width: 18px;
             height: 18px;
             background-color: #fff;
-            border: 2px solid #0d6efd;
+            border: 2px solid #667eea; /* 品牌紫蓝边框 */
             border-radius: 50%;
             cursor: pointer;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            box-shadow: 0 1px 3px rgba(102, 126, 234, 0.4);
+            transition: transform 0.1s;
+        }
+
+        .dual-range-wrapper input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
         }
 
         /* 自定义滑块圆点 (Firefox) */
@@ -202,10 +228,10 @@
             width: 18px;
             height: 18px;
             background-color: #fff;
-            border: 2px solid #0d6efd;
+            border: 2px solid #667eea;
             border-radius: 50%;
             cursor: pointer;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            box-shadow: 0 1px 3px rgba(102, 126, 234, 0.4);
         }
 
         /* 优化标签与数值显示的布局 */
@@ -219,9 +245,191 @@
             margin-bottom: 2px;
         }
         .filter-item-header .range-text {
-            color: #0d6efd;
+            color: #4f46e5; /* 品牌紫蓝 */
             font-weight: 600;
         }
+
+        /* ===== 分页容器（适用于所有 xxxPagination / xxxPaginationList） ===== */
+        [id$="Pagination"] {
+            margin-top: 2rem !important;
+        }
+
+        [id$="PaginationList"] {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px;
+            align-items: center;
+        }
+
+        [id$="PaginationList"] .page-item {
+            margin: 0;
+        }
+
+        [id$="PaginationList"] .page-item .page-link {
+            min-width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 12px;
+            margin-left: 0 !important;
+            border: 1px solid #e9ecef;
+            border-radius: 10px !important;
+            background: #fff;
+            color: #495057;
+            font-weight: 500;
+            font-size: 0.9rem;
+            line-height: 1;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+            text-decoration: none;
+        }
+
+        [id$="PaginationList"] .page-item .page-link:hover {
+            background: #eef2ff;
+            border-color: #c7d2fe;
+            color: #4f46e5;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.12);
+        }
+
+        [id$="PaginationList"] .page-item.active .page-link {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+        }
+
+        [id$="PaginationList"] .page-item.disabled .page-link {
+            background: #f8f9fa;
+            border-color: #f1f3f5;
+            color: #adb5bd;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        [id$="PaginationList"] .page-item.disabled .page-link:hover {
+            background: #f8f9fa;
+            border-color: #f1f3f5;
+            color: #adb5bd;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* ===== 跳页区 ===== */
+        [id$="PaginationList"] .jump-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: 10px;
+        }
+
+        [id$="PaginationList"] .jumpPageInput {
+            width: 64px;
+            height: 40px;
+            border-radius: 10px !important;
+            border: 1px solid #e9ecef !important;
+            text-align: center;
+            font-weight: 500;
+            color: #495057;
+            transition: all 0.2s;
+            padding: 0 !important;
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+
+        [id$="PaginationList"] .jumpPageInput::-webkit-outer-spin-button,
+        [id$="PaginationList"] .jumpPageInput::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        [id$="PaginationList"] .jumpPageInput:focus {
+            border-color: #a5b4fc !important;
+            box-shadow: 0 0 0 3px rgba(165, 180, 252, 0.25);
+            outline: none;
+        }
+
+        [id$="PaginationList"] .jump-btn {
+            height: 40px;
+            padding: 0 16px;
+            border-radius: 10px !important;
+            border: 1px solid #c7d2fe;
+            background: #fff;
+            color: #4f46e5;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            margin-left: 0 !important;
+        }
+
+        [id$="PaginationList"] .jump-btn:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* ===== 小屏适配 ===== */
+        @media (max-width: 576px) {
+            [id$="PaginationList"] { gap: 4px; }
+            [id$="PaginationList"] .page-item .page-link {
+                min-width: 34px;
+                height: 34px;
+                padding: 0 8px;
+                font-size: 0.82rem;
+            }
+            [id$="PaginationList"] .jumpPageInput,
+            [id$="PaginationList"] .jump-btn {
+                height: 34px;
+            }
+            [id$="PaginationList"] .jumpPageInput { width: 54px; }
+        }
+
+                /* ===== 搜索按钮（品牌渐变） ===== */
+        .btn-brand {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            border: none !important;
+            color: #fff !important;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-brand:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.5);
+            color: #fff !important;
+        }
+        .btn-brand:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+        }
+
+        /* ===== 清空按钮（灰底，悬停变红） ===== */
+        .btn-clear {
+            background: #fff !important;
+            border: 1px solid #e5e7eb !important;
+            color: #6b7280 !important;
+            font-weight: 500;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-clear:hover {
+            background: #fef2f2 !important;
+            border-color: #fecaca !important;
+            color: #dc2626 !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+        }
+        .btn-clear:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+        
+        /* 全局覆盖原本的蓝色 Spinner */
+        .text-primary { color: #667eea !important; }
     </style>
 {% endblock %}
 
@@ -373,8 +581,8 @@
                     </div>
                 </div>
                 <div class="btn-group-actions">
-                    <button class="btn btn-outline-secondary btn-sm" onclick="resetFilters()">清空</button>
-                    <button class="btn btn-primary btn-sm" onclick="loadActress(1)">搜索</button>
+                    <button class="btn btn-clear btn-sm" onclick="resetFilters()">清空</button>
+                    <button class="btn btn-brand btn-sm" onclick="loadActress(1)">搜索</button>
                 </div>
             </div>
             <!-- 女演员列表容器 -->
@@ -432,7 +640,7 @@
                 const gender = actor.gender || 0;
                 const noAvatarImg = gender === 1 ? `{{ url_for('static', filename='images/male-avatar.jpg') }}` : `{{ url_for('static', filename='images/female-avatar.jpg') }}`;
 
-                const avatarFixed = `/api/image_proxy?url=${encodeURIComponent(actor.avatar_url)}`;
+                const avatarFixed = `/api/image?url=${encodeURIComponent(actor.avatar_url)}`;
 
                 const otherNameHtml = actor.other_name
                     ? `<div class="text-muted small single-line-ellipsis other-name-placeholder" title="${actor.other_name}">${actor.other_name}</div>`
@@ -456,45 +664,83 @@
         }
 
         function renderPagination(currentPage, loadedCount, paginationId, loadFunc) {
-            const limit = 30;
+            const limit = 30;   // 保持原 limit=30
             const paginationUl = document.getElementById(paginationId + 'List');
             paginationUl.innerHTML = '';
 
+            // 当前页返回不足 limit 条，视为最后一页
             const isLastPage = loadedCount < limit;
-            const prevDisabled = currentPage <= 1 ? 'disabled' : '';
 
+            // 首页
             paginationUl.innerHTML += `
-                <li class="page-item ${prevDisabled}">
-                    <a class="page-link" href="javascript:void(0)" onclick="if(${currentPage} > 1) ${loadFunc}(${currentPage - 1}, true)">上一页</a>
+                <li class="page-item ${currentPage <= 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="javascript:void(0)"
+                    onclick="if(${currentPage} > 1) ${loadFunc}(1, true)" title="首页">«</a>
                 </li>
             `;
 
-            let startPage = Math.max(1, currentPage - 2);
-            let endPage = isLastPage ? currentPage : currentPage + 2;
+            // 上一页
+            paginationUl.innerHTML += `
+                <li class="page-item ${currentPage <= 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="javascript:void(0)"
+                    onclick="if(${currentPage} > 1) ${loadFunc}(${currentPage - 1}, true)" title="上一页">‹</a>
+                </li>
+            `;
+
+            // 页码窗口
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = isLastPage ? currentPage : currentPage + 2;
+
+            // 左省略号
+            if (startPage > 1) {
+                paginationUl.innerHTML += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+            }
 
             for (let i = startPage; i <= endPage; i++) {
                 if (i === currentPage) {
                     paginationUl.innerHTML += `<li class="page-item active"><span class="page-link">${i}</span></li>`;
                 } else {
-                    paginationUl.innerHTML += `<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="${loadFunc}(${i}, true)">${i}</a></li>`;
+                    paginationUl.innerHTML += `
+                        <li class="page-item">
+                            <a class="page-link" href="javascript:void(0)" onclick="${loadFunc}(${i}, true)">${i}</a>
+                        </li>
+                    `;
                 }
             }
 
-            const nextDisabled = isLastPage ? 'disabled' : '';
+            // 右省略号：仅当不是最后一页
+            if (!isLastPage) {
+                paginationUl.innerHTML += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+            }
+
+            // 下一页
             paginationUl.innerHTML += `
-                <li class="page-item ${nextDisabled}">
-                    <a class="page-link" href="javascript:void(0)" onclick="if(!${isLastPage}) ${loadFunc}(${currentPage + 1}, true)">下一页</a>
+                <li class="page-item ${isLastPage ? 'disabled' : ''}">
+                    <a class="page-link" href="javascript:void(0)"
+                    onclick="if(!${isLastPage}) ${loadFunc}(${currentPage + 1}, true)" title="下一页">›</a>
                 </li>
             `;
 
+            // 跳页
             paginationUl.innerHTML += `
-                <li class="page-item ms-3 d-flex align-items-center">
-                    <input type="number" class="jumpPageInput form-control text-center px-1" style="width: 60px; height: 38px;" value="${currentPage + 1}" min="1">
-                    <button class="btn btn-outline-primary ms-1" style="height: 38px;" onclick="jumpToPage('${paginationId}', '${loadFunc}')">跳转</button>
+                <li class="jump-wrap">
+                    <input type="number" class="jumpPageInput" value="${currentPage + 1}" min="1" placeholder="页码">
+                    <button class="jump-btn" onclick="jumpToPage('${paginationId}', '${loadFunc}')">跳转</button>
                 </li>
             `;
 
             document.getElementById(paginationId).classList.remove('d-none');
+
+            // 【新增】为当前渲染的跳页输入框绑定回车事件
+            // 因为每次 renderPagination 都会重建 DOM，旧的节点已销毁，不会重复绑定
+            const jumpInput = paginationUl.querySelector('.jumpPageInput');
+            if (jumpInput) {
+                jumpInput.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter') {
+                        jumpToPage(paginationId, loadFunc);
+                    }
+                });
+            }
         }
 
         function jumpToPage(paginationId, loadFunc) {
@@ -539,7 +785,7 @@
                 col.className = 'col';
                 const gender = actor.gender || 0;
                 const noAvatarImg = gender === 1 ? `{{ url_for('static', filename='images/male-avatar.jpg') }}` : `{{ url_for('static', filename='images/female-avatar.jpg') }}`;
-                const avatarFixed = `/api/image_proxy?url=${encodeURIComponent(actor.avatar_url)}`;
+                const avatarFixed = `/api/image?url=${encodeURIComponent(actor.avatar_url)}`;
                 col.innerHTML = `
                     <div class="card h-100 recommend-card">
                         <a href="/actor/${actor.id}" class="card-link-block">
@@ -721,11 +967,7 @@
                 if (!data.success) throw new Error(data.message || '加载失败');
                 const actors = data.data.actors || [];
                 renderActorCards(actors, 'actressContainer');
-                if (actors.length > 0) {
-                    renderPagination(page, actors.length, 'actressPagination', 'loadActress');
-                } else {
-                    paginationEl.classList.add('d-none');
-                }
+                renderPagination(page, actors.length, 'actressPagination', 'loadActress');
                 if (scrollToTop) {
                     document.getElementById('actressContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
@@ -760,11 +1002,7 @@
                 if (!data.success) throw new Error(data.message || '加载失败');
                 const actors = data.data.actors || [];
                 renderActorCards(actors, 'maleContainer');
-                if (actors.length > 0) {
-                    renderPagination(page, actors.length, 'malePagination', 'loadMale');
-                } else {
-                    paginationEl.classList.add('d-none');
-                }
+                renderPagination(page, actors.length, 'malePagination', 'loadMale');
                 if (scrollToTop) {
                     document.getElementById('maleContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
@@ -797,11 +1035,7 @@
                 if (!data.success) throw new Error(data.message || '加载失败');
                 const actors = data.data.actors || [];
                 renderActorCards(actors, 'uncensoredContainer');
-                if (actors.length > 0) {
-                    renderPagination(page, actors.length, 'uncensoredPagination', 'loadUncensored');
-                } else {
-                    paginationEl.classList.add('d-none');
-                }
+                renderPagination(page, actors.length, 'uncensoredPagination', 'loadUncensored');
                 if (scrollToTop) {
                     document.getElementById('uncensoredContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
@@ -834,11 +1068,7 @@
                 if (!data.success) throw new Error(data.message || '加载失败');
                 const actors = data.data.actors || [];
                 renderActorCards(actors, 'euFemaleContainer');
-                if (actors.length > 0) {
-                    renderPagination(page, actors.length, 'euFemalePagination', 'loadEuFemale');
-                } else {
-                    paginationEl.classList.add('d-none');
-                }
+                renderPagination(page, actors.length, 'euFemalePagination', 'loadEuFemale');
                 if (scrollToTop) {
                     document.getElementById('euFemaleContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
@@ -871,11 +1101,7 @@
                 if (!data.success) throw new Error(data.message || '加载失败');
                 const actors = data.data.actors || [];
                 renderActorCards(actors, 'euMaleContainer');
-                if (actors.length > 0) {
-                    renderPagination(page, actors.length, 'euMalePagination', 'loadEuMale');
-                } else {
-                    paginationEl.classList.add('d-none');
-                }
+                renderPagination(page, actors.length, 'euMalePagination', 'loadEuMale');
                 if (scrollToTop) {
                     document.getElementById('euMaleContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }

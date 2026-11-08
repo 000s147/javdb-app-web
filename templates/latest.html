@@ -4,9 +4,17 @@
 
 {% block styles %}
     <style>
-        .movie-card { transition: transform 0.2s; }
-        .movie-card:hover { transform: scale(1.02); }
-        .movie-card img { width: 100%; height: 220px; object-fit: cover; }
+        .movie-card {
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            transition: transform .25s ease, box-shadow .25s ease;
+        }
+        .movie-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-3);
+        }
+        .movie-card img { width: 100%; height: 220px; object-fit: cover; transition: transform .4s ease; }
+        .movie-card:hover img { transform: scale(1.04); }
         .filter-section {
             background: #fff;
             padding: 15px;
@@ -26,6 +34,197 @@
             font-size: 0.9rem;
             min-width: 50px;
         }
+
+        /* ===== 分页容器 ===== */
+        #pagination {
+            margin-top: 2rem !important;
+        }
+
+        #paginationList {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px;
+            align-items: center;
+        }
+
+        #paginationList .page-item {
+            margin: 0;
+        }
+
+        #paginationList .page-item .page-link {
+            min-width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 12px;
+            margin-left: 0 !important;
+            border: 1px solid #e9ecef;
+            border-radius: 10px !important;
+            background: #fff;
+            color: #495057;
+            font-weight: 500;
+            font-size: 0.9rem;
+            line-height: 1;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+            text-decoration: none;
+        }
+
+        #paginationList .page-item .page-link:hover {
+            background: #eef2ff;
+            border-color: #c7d2fe;
+            color: #4f46e5;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.12);
+        }
+
+        #paginationList .page-item.active .page-link {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+        }
+
+        #paginationList .page-item.disabled .page-link {
+            background: #f8f9fa;
+            border-color: #f1f3f5;
+            color: #adb5bd;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        #paginationList .page-item.disabled .page-link:hover {
+            background: #f8f9fa;
+            border-color: #f1f3f5;
+            color: #adb5bd;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* ===== 跳页区 ===== */
+        #paginationList .jump-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: 10px;
+        }
+
+        #jumpPageInput {
+            width: 64px;
+            height: 40px;
+            border-radius: 10px !important;
+            border: 1px solid #e9ecef !important;
+            text-align: center;
+            font-weight: 500;
+            color: #495057;
+            transition: all 0.2s;
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+
+        #jumpPageInput::-webkit-outer-spin-button,
+        #jumpPageInput::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        #jumpPageInput:focus {
+            border-color: #a5b4fc !important;
+            box-shadow: 0 0 0 3px rgba(165, 180, 252, 0.25);
+            outline: none;
+        }
+
+        #paginationList .jump-btn {
+            height: 40px;
+            padding: 0 16px;
+            border-radius: 10px !important;
+            border: 1px solid #c7d2fe;
+            background: #fff;
+            color: #4f46e5;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        #paginationList .jump-btn:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* ===== 小屏适配 ===== */
+        @media (max-width: 576px) {
+            #paginationList { gap: 4px; }
+            #paginationList .page-item .page-link {
+                min-width: 34px;
+                height: 34px;
+                padding: 0 8px;
+                font-size: 0.82rem;
+            }
+            #jumpPageInput,
+            #paginationList .jump-btn {
+                height: 34px;
+            }
+            #jumpPageInput { width: 54px; }
+        }
+
+                /* ===== 筛选按钮：未选中 ===== */
+        .custom-radio-label {
+            border: 1px solid #e5e7eb !important;
+            border-radius: 0.375rem !important;
+            padding: 0.375rem 0.75rem;
+            background-color: #ffffff !important;
+            color: #4b5563 !important;
+            font-weight: 500;
+            margin-bottom: 4px;
+            transition: background-color 0.22s ease, color 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease, transform 0.22s ease;
+            cursor: pointer;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+        }
+        /* ===== 未选中悬停 ===== */
+        .btn-check:not(:checked) + .custom-radio-label:hover {
+            background-color: #f5f6ff !important;
+            border-color: #c7d2fe !important;
+            color: #4f46e5 !important;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.12);
+        }
+        /* ===== 选中 ===== */
+        .btn-check:checked + .custom-radio-label {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            color: #fff !important;
+            border-color: transparent !important;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+        }
+        /* ===== 选中悬停 ===== */
+        .btn-check:checked + .custom-radio-label:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5);
+        }
+        /* ===== 按下 ===== */
+        .custom-radio-label:active {
+            transform: scale(0.97);
+        }
+
+        /* 👇 彻底去除点击/聚焦时的原生蓝色外发光 */
+        .btn-check:focus + .custom-radio-label,
+        .btn-check:active + .custom-radio-label {
+            outline: none !important;
+            box-shadow: none !important;
+        }
+        .btn-check:checked:focus + .custom-radio-label {
+            outline: none !important;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35) !important;
+        }
+
+        /* 全局覆盖原本的蓝色 Spinner */
+        .text-primary { color: #667eea !important; }
     </style>
 {% endblock %}
 
@@ -34,48 +233,48 @@
 
     <div class="filter-section border">
         <div class="filter-row mb-3 pb-3 border-bottom">
-            <span class="filter-label text-primary">⭐ 类别：</span>
+            <span class="filter-label text-muted">⭐ 类别：</span>
             <input type="radio" class="btn-check filter-opt" name="f_type" id="t_all" value="all" checked>
-            <label class="btn btn-outline-primary btn-sm" for="t_all">全部</label>
+            <label class="btn custom-radio-label btn-sm" for="t_all">全部</label>
 
             <input type="radio" class="btn-check filter-opt" name="f_type" id="t_0" value="0">
-            <label class="btn btn-outline-primary btn-sm" for="t_0">有码</label>
+            <label class="btn custom-radio-label btn-sm" for="t_0">有码</label>
 
             <input type="radio" class="btn-check filter-opt" name="f_type" id="t_1" value="1">
-            <label class="btn btn-outline-primary btn-sm" for="t_1">无码</label>
+            <label class="btn custom-radio-label btn-sm" for="t_1">无码</label>
 
             <input type="radio" class="btn-check filter-opt" name="f_type" id="t_2" value="2">
-            <label class="btn btn-outline-primary btn-sm" for="t_2">欧美</label>
+            <label class="btn custom-radio-label btn-sm" for="t_2">欧美</label>
 
             <input type="radio" class="btn-check filter-opt" name="f_type" id="t_3" value="3">
-            <label class="btn btn-outline-primary btn-sm" for="t_3">FC2</label>
+            <label class="btn custom-radio-label btn-sm" for="t_3">FC2</label>
 
             <input type="radio" class="btn-check filter-opt" name="f_type" id="t_4" value="4">
-            <label class="btn btn-outline-primary btn-sm" for="t_4">动漫</label>
+            <label class="btn custom-radio-label btn-sm" for="t_4">动漫</label>
         </div>
 
         <div class="filter-row mb-3 pb-3 border-bottom">
-            <span class="filter-label text-success">⚡ 筛选：</span>
+            <span class="filter-label text-muted">⚡ 筛选：</span>
             <input type="radio" class="btn-check filter-opt" name="f_filter" id="f_all" value="all" checked>
-            <label class="btn btn-outline-success btn-sm" for="f_all">全部</label>
+            <label class="btn custom-radio-label btn-sm" for="f_all">全部</label>
 
             <input type="radio" class="btn-check filter-opt" name="f_filter" id="f_can_play" value="can_play">
-            <label class="btn btn-outline-success btn-sm" for="f_can_play">可播放</label>
+            <label class="btn custom-radio-label btn-sm" for="f_can_play">可播放</label>
 
             <input type="radio" class="btn-check filter-opt" name="f_filter" id="f_magnets" value="magnets">
-            <label class="btn btn-outline-success btn-sm" for="f_magnets">含磁链</label>
+            <label class="btn custom-radio-label btn-sm" for="f_magnets">含磁链</label>
 
             <input type="radio" class="btn-check filter-opt" name="f_filter" id="f_subtitle" value="subtitle">
-            <label class="btn btn-outline-success btn-sm" for="f_subtitle">含字幕</label>
+            <label class="btn custom-radio-label btn-sm" for="f_subtitle">含字幕</label>
         </div>
 
         <div class="filter-row">
-            <span class="filter-label text-secondary">🔃 排序：</span>
+            <span class="filter-label text-muted">🔃 排序：</span>
             <input type="radio" class="btn-check filter-opt" name="f_sort" id="s_update" value="update">
-            <label class="btn btn-outline-secondary btn-sm" for="s_update">更新时间</label>
+            <label class="btn custom-radio-label btn-sm" for="s_update">更新时间</label>
 
             <input type="radio" class="btn-check filter-opt" name="f_sort" id="s_release" value="release" checked>
-            <label class="btn btn-outline-secondary btn-sm" for="s_release">发布时间</label>
+            <label class="btn custom-radio-label btn-sm" for="s_release">发布时间</label>
         </div>
     </div>
 
@@ -125,9 +324,8 @@
                 const movies = data.data.movies || [];
                 renderMovieCards(movies);
 
-                if (movies.length > 0) {
-                    renderPagination(page, movies.length);
-                }
+                // 无条件渲染：空数据时也会显示分页（当前页 + 上一页可点 + 跳页可用）
+                renderPagination(page, movies.length);
                 fadeOut(containerLD);
 
             } catch (err) {
@@ -155,7 +353,7 @@
             }
 
             movies.forEach(movie => {
-                const coverFixed = `/api/image_proxy?url=${encodeURIComponent(movie.cover_url || movie.thumb_url)}`;
+                const coverFixed = `/api/image?url=${encodeURIComponent(movie.cover_url || movie.thumb_url)}`;
                 const detailUrl = `/movie/${movie.id}`;
 
                 container.innerHTML += `
@@ -190,40 +388,68 @@
             const paginationUl = document.getElementById('paginationList');
             paginationUl.innerHTML = '';
 
+            // 当前页返回不足 24 条，视为最后一页
             const isLastPage = loadedCount < limit;
-            const prevDisabled = currentPage <= 1 ? 'disabled' : '';
 
+            // 首页
             paginationUl.innerHTML += `
-                <li class="page-item ${prevDisabled}">
-                    <a class="page-link" href="javascript:void(0)" onclick="if(${currentPage} > 1) fetchLatestMovies(${currentPage - 1}, true)">上一页</a>
+                <li class="page-item ${currentPage <= 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="javascript:void(0)"
+                    onclick="if(${currentPage} > 1) fetchLatestMovies(1, true)" title="首页">«</a>
                 </li>
             `;
 
-            let startPage = Math.max(1, currentPage - 2);
-            let endPage = isLastPage ? currentPage : currentPage + 2;
+            // 上一页
+            paginationUl.innerHTML += `
+                <li class="page-item ${currentPage <= 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="javascript:void(0)"
+                    onclick="if(${currentPage} > 1) fetchLatestMovies(${currentPage - 1}, true)" title="上一页">‹</a>
+                </li>
+            `;
+
+            // 页码窗口
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = isLastPage ? currentPage : currentPage + 2;
+
+            // 左省略号
+            if (startPage > 1) {
+                paginationUl.innerHTML += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+            }
 
             for (let i = startPage; i <= endPage; i++) {
                 if (i === currentPage) {
                     paginationUl.innerHTML += `<li class="page-item active"><span class="page-link">${i}</span></li>`;
                 } else {
-                    paginationUl.innerHTML += `<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="fetchLatestMovies(${i}, true)">${i}</a></li>`;
+                    paginationUl.innerHTML += `
+                        <li class="page-item">
+                            <a class="page-link" href="javascript:void(0)" onclick="fetchLatestMovies(${i}, true)">${i}</a>
+                        </li>
+                    `;
                 }
             }
 
-            const nextDisabled = isLastPage ? 'disabled' : '';
+            // 右省略号：仅当不是最后一页
+            if (!isLastPage) {
+                paginationUl.innerHTML += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+            }
+
+            // 下一页
             paginationUl.innerHTML += `
-                <li class="page-item ${nextDisabled}">
-                    <a class="page-link" href="javascript:void(0)" onclick="if(!${isLastPage}) fetchLatestMovies(${currentPage + 1}, true)">下一页</a>
+                <li class="page-item ${isLastPage ? 'disabled' : ''}">
+                    <a class="page-link" href="javascript:void(0)"
+                    onclick="if(!${isLastPage}) fetchLatestMovies(${currentPage + 1}, true)" title="下一页">›</a>
                 </li>
             `;
 
+            // 跳页
             paginationUl.innerHTML += `
-                <li class="page-item ms-3 d-flex align-items-center">
-                    <input type="number" id="jumpPageInput" class="form-control text-center px-1" style="width: 60px; height: 38px;" value="${currentPage + 1}" min="1">
-                    <button class="btn btn-outline-primary ms-1" style="height: 38px;" onclick="jumpToPage()">跳转</button>
+                <li class="jump-wrap">
+                    <input type="number" id="jumpPageInput" value="${currentPage + 1}" min="1" placeholder="页码">
+                    <button class="jump-btn" onclick="jumpToPage()">跳转</button>
                 </li>
             `;
 
+            // 显示分页容器
             document.getElementById('pagination').classList.remove('d-none');
         }
 
@@ -232,6 +458,12 @@
             const page = parseInt(val, 10);
             if (page && page > 0) fetchLatestMovies(page, true);
         }
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && e.target && e.target.id === 'jumpPageInput') {
+                jumpToPage();
+            }
+        });
 
         // ==========================================
         // 渐隐隐藏元素函数

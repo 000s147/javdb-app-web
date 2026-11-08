@@ -5,9 +5,44 @@
 {% block styles %}
     <style>
         .article-detail img { max-width: 100%; height: auto; }
-        .article-content { font-size: 1.05rem; line-height: 1.8; }
+        .article-content { font-size: 1.05rem; line-height: 1.8; color: #374151; }
         .article-content p { margin-bottom: 1rem; }
-        .article-content .quote { background: #f8f9fa; border-left: 4px solid #0d6efd; padding: 1rem; margin: 1rem 0; }
+        
+        /* ===== 引用块美化：品牌紫蓝边框 ===== */
+        .article-content .quote { 
+            background: #f8f9fa; 
+            border-left: 4px solid #667eea; /* 原为原生蓝 #0d6efd */
+            padding: 1rem 1.2rem; 
+            margin: 1.5rem 0; 
+            border-radius: 0 8px 8px 0;
+            color: #4b5563;
+            font-style: italic;
+        }
+
+        /* ===== 转载信息链接 ===== */
+        #originInfo a { 
+            color: #4f46e5; 
+            text-decoration: none; 
+            transition: color 0.2s; 
+        }
+        #originInfo a:hover { 
+            color: #764ba2; 
+            text-decoration: underline; 
+        }
+
+        /* ===== 作者/分类胶囊标签 ===== */
+        .badge-brand {
+            background: #f5f6ff !important;
+            color: #4f46e5 !important;
+            border: 1px solid #c7d2fe !important;
+            padding: 0.4em 0.8em;
+            border-radius: 20px;
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+
+        /* 覆盖原生的蓝色 Spinner */
+        .text-primary { color: #667eea !important; }
     </style>
 {% endblock %}
 
@@ -24,8 +59,8 @@
             <div class="card-body">
                 <h1 id="articleTitle" class="fw-bold mb-3"></h1>
                 <div class="d-flex flex-wrap gap-3 text-muted mb-4">
-                    <span id="articleAuthor" class="badge bg-secondary"></span>
-                    <span id="articleCategory" class="badge bg-info"></span>
+                    <span id="articleAuthor" class="badge badge-brand"></span>
+                    <span id="articleCategory" class="badge badge-brand"></span>
                     <span id="articleDate" class="small"></span>
                 </div>
                 <!-- 转载信息 -->
@@ -64,8 +99,8 @@
             }
 
             // 作者和类别设置为链接
-            const authorHtml = article.author ? `<a href="/articles?author_id=${article.author.id}&author_name=${article.author.name}" class="text-white text-decoration-none">${article.author.name}</a>` : '未知作者';
-            const categoryHtml = article.category ? `<a href="/articles?category_id=${article.category.id}&category_name=${article.category.name}" class="text-white text-decoration-none">${article.category.name}</a>` : '未分类';
+            const authorHtml = article.author ? `<a href="/articles?author_id=${article.author.id}&author_name=${article.author.name}" class="text-decoration-none" style="color: inherit;">${article.author.name}</a>` : '未知作者';
+            const categoryHtml = article.category ? `<a href="/articles?category_id=${article.category.id}&category_name=${article.category.name}" class="text-decoration-none" style="color: inherit;">${article.category.name}</a>` : '未分类';
             document.getElementById('articleAuthor').innerHTML = authorHtml;
             document.getElementById('articleCategory').innerHTML = categoryHtml;
 
@@ -84,7 +119,7 @@
             images.forEach(img => {
                 const src = img.getAttribute('src');
                 if (src) {
-                    img.src = `/api/image_proxy?url=${encodeURIComponent(src)}`;
+                    img.src = `/api/image?url=${encodeURIComponent(src)}`;
                 }
             });
 

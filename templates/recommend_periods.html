@@ -4,14 +4,17 @@
 
 {% block styles %}
     <style>
+                /* ===== 期数卡片 ===== */
         .period-card {
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease, border-color 0.25s ease;
             cursor: pointer;
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            background: #ffffff;
+            border: 1px solid #e5e7eb !important; /* 干净的浅灰边框 */
         }
         .period-card:hover {
             transform: translateY(-4px);
-            box-shadow: 0 .5rem 1rem rgba(0,0,0,.15);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.15); /* 带点紫的阴影 */
+            border-color: #c7d2fe !important; /* 悬浮泛紫 */
         }
         .period-card .card-body {
             display: flex;
@@ -21,9 +24,32 @@
             min-height: 140px;
             text-align: center;
         }
-        .movie-card { transition: transform 0.2s; }
-        .movie-card:hover { transform: scale(1.02); }
-        .movie-card img { width: 100%; height: 220px; object-fit: cover; }
+        
+        /* 期数数字使用品牌渐变 */
+        .period-number {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+
+        /* 覆盖原生蓝色 spinner */
+        .text-primary {
+            color: #667eea !important;
+        }
+        .movie-card {
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            transition: transform .25s ease, box-shadow .25s ease;
+        }
+        .movie-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-3);
+        }
+        .movie-card img { width: 100%; height: 220px; object-fit: cover; transition: transform .4s ease; }
+        .movie-card:hover img { transform: scale(1.04); }
         .back-btn { cursor: pointer; }
         .period-link {
             display: block;
@@ -33,6 +59,145 @@
         .period-link:hover {
             transform: translateY(-4px);
             box-shadow: 0 .5rem 1rem rgba(0,0,0,.15);
+        }
+        /* ===== 分页容器 ===== */
+        #periodsPagination {
+            margin-top: 2rem !important;
+        }
+
+        #periodsPaginationList {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px;
+            align-items: center;
+        }
+
+        #periodsPaginationList .page-item {
+            margin: 0;
+        }
+
+        #periodsPaginationList .page-item .page-link {
+            min-width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 12px;
+            margin-left: 0 !important;
+            border: 1px solid #e9ecef;
+            border-radius: 10px !important;
+            background: #fff;
+            color: #495057;
+            font-weight: 500;
+            font-size: 0.9rem;
+            line-height: 1;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+            text-decoration: none;
+        }
+
+        #periodsPaginationList .page-item .page-link:hover {
+            background: #eef2ff;
+            border-color: #c7d2fe;
+            color: #4f46e5;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.12);
+        }
+
+        #periodsPaginationList .page-item.active .page-link {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+        }
+
+        #periodsPaginationList .page-item.disabled .page-link {
+            background: #f8f9fa;
+            border-color: #f1f3f5;
+            color: #adb5bd;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        #periodsPaginationList .page-item.disabled .page-link:hover {
+            background: #f8f9fa;
+            border-color: #f1f3f5;
+            color: #adb5bd;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* ===== 跳页区 ===== */
+        #periodsPaginationList .jump-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: 10px;
+        }
+
+        #periodsPaginationList .jumpPageInput {
+            width: 64px;
+            height: 40px;
+            border-radius: 10px !important;
+            border: 1px solid #e9ecef !important;
+            text-align: center;
+            font-weight: 500;
+            color: #495057;
+            transition: all 0.2s;
+            padding: 0 !important;
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+
+        #periodsPaginationList .jumpPageInput::-webkit-outer-spin-button,
+        #periodsPaginationList .jumpPageInput::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        #periodsPaginationList .jumpPageInput:focus {
+            border-color: #a5b4fc !important;
+            box-shadow: 0 0 0 3px rgba(165, 180, 252, 0.25);
+            outline: none;
+        }
+
+        #periodsPaginationList .jump-btn {
+            height: 40px;
+            padding: 0 16px;
+            border-radius: 10px !important;
+            border: 1px solid #c7d2fe;
+            background: #fff;
+            color: #4f46e5;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            margin-left: 0 !important;
+        }
+
+        #periodsPaginationList .jump-btn:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* ===== 小屏适配 ===== */
+        @media (max-width: 576px) {
+            #periodsPaginationList { gap: 4px; }
+            #periodsPaginationList .page-item .page-link {
+                min-width: 34px;
+                height: 34px;
+                padding: 0 8px;
+                font-size: 0.82rem;
+            }
+            #periodsPaginationList .jumpPageInput,
+            #periodsPaginationList .jump-btn {
+                height: 34px;
+            }
+            #periodsPaginationList .jumpPageInput { width: 54px; }
         }
     </style>
 {% endblock %}
@@ -75,41 +240,78 @@
             const paginationUl = document.getElementById(paginationId + 'List');
             paginationUl.innerHTML = '';
 
+            // 当前页返回不足 24 条，视为最后一页
             const isLastPage = loadedCount < limit;
-            const prevDisabled = currentPage <= 1 ? 'disabled' : '';
 
+            // 首页
             paginationUl.innerHTML += `
-                <li class="page-item ${prevDisabled}">
-                    <a class="page-link" href="javascript:void(0)" onclick="if(${currentPage} > 1) ${loadFunc}(${currentPage - 1}, true)">上一页</a>
+                <li class="page-item ${currentPage <= 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="javascript:void(0)"
+                    onclick="if(${currentPage} > 1) ${loadFunc}(1, true)" title="首页">«</a>
                 </li>
             `;
 
-            let startPage = Math.max(1, currentPage - 2);
-            let endPage = isLastPage ? currentPage : currentPage + 2;
+            // 上一页
+            paginationUl.innerHTML += `
+                <li class="page-item ${currentPage <= 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="javascript:void(0)"
+                    onclick="if(${currentPage} > 1) ${loadFunc}(${currentPage - 1}, true)" title="上一页">‹</a>
+                </li>
+            `;
+
+            // 页码窗口
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = isLastPage ? currentPage : currentPage + 2;
+
+            // 左省略号
+            if (startPage > 1) {
+                paginationUl.innerHTML += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+            }
 
             for (let i = startPage; i <= endPage; i++) {
                 if (i === currentPage) {
                     paginationUl.innerHTML += `<li class="page-item active"><span class="page-link">${i}</span></li>`;
                 } else {
-                    paginationUl.innerHTML += `<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="${loadFunc}(${i}, true)">${i}</a></li>`;
+                    paginationUl.innerHTML += `
+                        <li class="page-item">
+                            <a class="page-link" href="javascript:void(0)" onclick="${loadFunc}(${i}, true)">${i}</a>
+                        </li>
+                    `;
                 }
             }
 
-            const nextDisabled = isLastPage ? 'disabled' : '';
+            // 右省略号：仅当不是最后一页
+            if (!isLastPage) {
+                paginationUl.innerHTML += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+            }
+
+            // 下一页
             paginationUl.innerHTML += `
-                <li class="page-item ${nextDisabled}">
-                    <a class="page-link" href="javascript:void(0)" onclick="if(!${isLastPage}) ${loadFunc}(${currentPage + 1}, true)">下一页</a>
+                <li class="page-item ${isLastPage ? 'disabled' : ''}">
+                    <a class="page-link" href="javascript:void(0)"
+                    onclick="if(!${isLastPage}) ${loadFunc}(${currentPage + 1}, true)" title="下一页">›</a>
                 </li>
             `;
 
+            // 跳页
             paginationUl.innerHTML += `
-                <li class="page-item ms-3 d-flex align-items-center">
-                    <input type="number" class="jumpPageInput form-control text-center px-1" style="width: 60px; height: 38px;" value="${currentPage + 1}" min="1">
-                    <button class="btn btn-outline-primary ms-1" style="height: 38px;" onclick="jumpToPage('${paginationId}', '${loadFunc}')">跳转</button>
+                <li class="jump-wrap">
+                    <input type="number" class="jumpPageInput" value="${currentPage + 1}" min="1" placeholder="页码">
+                    <button class="jump-btn" onclick="jumpToPage('${paginationId}', '${loadFunc}')">跳转</button>
                 </li>
             `;
 
             document.getElementById(paginationId).classList.remove('d-none');
+
+            // 给当前渲染的跳页输入框绑定回车
+            const jumpInput = paginationUl.querySelector('.jumpPageInput');
+            if (jumpInput) {
+                jumpInput.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter') {
+                        jumpToPage(paginationId, loadFunc);
+                    }
+                });
+            }
         }
 
         function jumpToPage(paginationId, loadFunc) {
@@ -117,7 +319,7 @@
             const val = input.value;
             const p = parseInt(val, 10);
             if (p && p > 0) {
-                const fn = eval(loadFunc);
+                const fn = window[loadFunc];   // ← 替换 eval
                 if (typeof fn === 'function') fn(p, true);
             }
         }
@@ -168,43 +370,43 @@
 
                 const periods = data.data.periods || [];
                 container.innerHTML = '';
+
                 if (periods.length === 0) {
                     container.innerHTML = '<div class="col-12 text-center text-muted py-5">暂无期数</div>';
-                    return;
+                } else {
+                    periods.forEach(item => {
+                        const date = new Date(item.created_at);
+                        const dateStr = date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
+                        const href = `?period=${item.period}`;
+                        container.innerHTML += `
+                            <div class="col-md-3 col-sm-6 mb-4">
+                                <a href="${href}" class="card h-100 period-card shadow-sm border-0 text-decoration-none period-link" data-period="${item.period}" data-date="${dateStr}">
+                                    <div class="card-body">
+                                        <h3 class="card-title fw-bold text-primary mb-2">#${item.period}</h3>
+                                        <p class="text-muted small mb-1">📁 ${item.movies_count} 部影片</p>
+                                        <p class="text-muted small mb-0">📅 ${dateStr}</p>
+                                    </div>
+                                </a>
+                            </div>
+                        `;
+                    });
                 }
 
-                // 在 loadPeriods 函数中，卡片生成部分改为：
-                periods.forEach(item => {
-                    const date = new Date(item.created_at);
-                    const dateStr = date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
-                    const href = `?period=${item.period}`;
-                    container.innerHTML += `
-                        <div class="col-md-3 col-sm-6 mb-4">
-                            <a href="${href}" class="card h-100 period-card shadow-sm border-0 text-decoration-none period-link" data-period="${item.period}" data-date="${dateStr}">
-                                <div class="card-body">
-                                    <h3 class="card-title fw-bold text-primary mb-2">#${item.period}</h3>
-                                    <p class="text-muted small mb-1">📁 ${item.movies_count} 部影片</p>
-                                    <p class="text-muted small mb-0">📅 ${dateStr}</p>
-                                </div>
-                            </a>
-                        </div>
-                    `;
-                });
+                // 无条件渲染分页（空数据时也显示，方便翻回）
+                renderPagination(page, periods.length, 'periodsPagination', 'loadPeriods');
 
-                if (periods.length > 0) {
-                    renderPagination(page, periods.length, 'periodsPagination', 'loadPeriods');
-                }
                 if (scrollToTop) container.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-                // 在 loadPeriods 末尾绑定点击事件（委托）
+                // 点击事件只对有卡片的元素绑定（空数据时没有 .period-link，forEach 自然跳过）
                 document.querySelectorAll('.period-link').forEach(link => {
                     link.addEventListener('click', function(e) {
-                        e.preventDefault(); // 阻止页面跳转
+                        e.preventDefault();
                         const period = this.dataset.period;
                         const date = this.dataset.date;
                         showMoviesView(period, date);
                     });
                 });
+
             } catch (e) {
                 container.innerHTML = `
                     <div class="col-12 text-center text-danger py-5">
@@ -212,8 +414,7 @@
                         <div><button class="btn btn-primary mt-2" onclick="loadPeriods(${currentPage}, true)">重试</button></div>
                     </div>
                 `;
-                // 确保分页隐藏（已是 d-none，但以防万一）
-                document.getElementById('periodsPagination').classList.add('d-none');
+                paginationEl.classList.add('d-none');
             }
         }
 
@@ -235,7 +436,7 @@
                 }
 
                 movies.forEach(movie => {
-                    const coverFixed = `/api/image_proxy?url=${encodeURIComponent(movie.cover_url)}`
+                    const coverFixed = `/api/image?url=${encodeURIComponent(movie.cover_url)}`
                     const detailUrl = `/movie/${movie.id}`;
                     const score = movie.score ? parseFloat(movie.score).toFixed(1) : 'N/A';
                     container.innerHTML += `
