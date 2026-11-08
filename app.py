@@ -1,15 +1,59 @@
 import requests
-from flask import Flask, render_template, request, jsonify, redirect, url_for, Response
+from flask import Flask, render_template, request, jsonify, redirect, url_for, Response, g
 from api import JavJHSClient
 import config as cfg
-import io
-from PIL import Image
 import time
+import threading
+from requests.adapters import HTTPAdapter
+from datetime import datetime
+import logging
+import struct
+
+
+# 限制同时下载的图片数（关键！）
+_download_semaphore = threading.BoundedSemaphore(6)
+
+# 全局 Session 复用连接池
+_session = requests.Session()
+_session.mount("https://", HTTPAdapter(pool_connections=10, pool_maxsize=20))
+_session.mount("http://", HTTPAdapter(pool_connections=10, pool_maxsize=20))
+
 
 app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 25 * 1024 * 1024  # 25MB
 
 
-# 初始化 Client (请替换为实际的账号密码)
+logging.basicConfig(
+    level=logging.WARNING,
+    format='%(name)s: %(message)s',
+)
+
+logger = logging.getLogger('access')
+logger.setLevel(logging.INFO)
+
+# 让 Waitress 的启动信息 / 运行信息可见，但不放行 urllib3、requests 的 INFO
+logging.getLogger('waitress').setLevel(logging.INFO)
+
+
+@app.before_request
+def log_request_start():
+    g.request_start_time = time.perf_counter()
+
+@app.after_request
+def log_request_end(response):
+    start_time = getattr(g, 'request_start_time', None)
+    elapsed = (time.perf_counter() - start_time) * 1000 if start_time else 0.0
+    timestamp = datetime.now().strftime('%d/%b/%Y %H:%M:%S')
+    logger.info(
+        '%s - - [%s] "%s %s %s" %s - %.2f ms',
+        request.remote_addr, timestamp,
+        request.method, request.full_path.rstrip('?'),
+        request.environ.get('SERVER_PROTOCOL', 'HTTP/1.1'),
+        response.status_code, elapsed,
+    )
+    return response
+
+
 jav_client = JavJHSClient()
 
 
@@ -31,7 +75,6 @@ def movie_detail(movie_id):
 @app.route('/api/actor/<actor_id>', methods=['GET'])
 def get_actor_info(actor_id):
     try:
-        # 使用 client 的 _get 方法，路径参数用 params 字典传递
         data = jav_client._get(
             f"/v1/actors/{actor_id}",
             params={"from_rankings": "false"}
@@ -121,10 +164,8 @@ def tag_search():
 
 @app.route('/api/tags', methods=['GET'])
 def get_tags():
-    # 接收前端传来的 type 参数，默认为 0（有码）
     req_type = request.args.get('type', '0')
     try:
-        # 将 type 传给官方 API
         data = jav_client._get("/v2/tags", params={"type": req_type})
         return jsonify(data)
     except Exception as e:
@@ -163,7 +204,6 @@ def get_tag_movies():
 @app.route('/api/actors/recommend', methods=['GET'])
 def get_actors_recommend():
     try:
-        # client.pyの_getメソッドを利用して認証ヘッダー(jdsignature等)を自動付与してリクエストします
         data = jav_client._get("/v1/actors/recommend")
         return jsonify(data)
     except Exception as e:
@@ -171,7 +211,6 @@ def get_actors_recommend():
 
 @app.route('/search')
 def search_page():
-    # 允许直接通过 /search?q=石川澪 访问
     keyword = request.args.get('q', '')
     return render_template('search.html', initial_keyword=keyword)
 
@@ -293,7 +332,7 @@ def api_get_rankings():
     except Exception as e:
         return jsonify({"success": 0, "error": str(e)}), 500
 
-# ================= 新增：番号系列相关路由 =================
+# ================= 番号系列相关路由 =================
 
 @app.route('/code/<code_id>')
 def code_page(code_id):
@@ -340,7 +379,7 @@ def api_get_code_movies():
     except Exception as e:
         return jsonify({"success": 0, "error": str(e)}), 500
 
-# ================= 新增：清单相关路由 =================
+# ================= 清单相关路由 =================
 
 @app.route('/list/<list_id>')
 def list_page(list_id):
@@ -387,7 +426,7 @@ def api_get_list_movies():
     except Exception as e:
         return jsonify({"success": 0, "error": str(e)}), 500
 
-# ================= 新增：系列相关路由 =================
+# ================= 系列相关路由 =================
 
 @app.route('/series/<series_id>')
 def series_page(series_id):
@@ -435,7 +474,7 @@ def api_get_series_movies():
     except Exception as e:
         return jsonify({"success": 0, "error": str(e)}), 500
 
-# ================= 新增：片商相关路由 =================
+# ================= 片商相关路由 =================
 
 @app.route('/maker/<maker_id>')
 def maker_page(maker_id):
@@ -487,7 +526,7 @@ def api_get_maker_movies():
     except Exception as e:
         return jsonify({"success": 0, "error": str(e)}), 500
 
-# ================= 新增：导演相关路由 =================
+# ================= 导演相关路由 =================
 
 @app.route('/director/<director_id>')
 def director_page(director_id):
@@ -537,7 +576,7 @@ def api_get_director_movies():
     except Exception as e:
         return jsonify({"success": 0, "error": str(e)}), 500
 
-# ================= 新增：女演员有码列表 =================
+# ================= 女演员有码列表 =================
 
 @app.route('/actors')
 def actors_page():
@@ -627,7 +666,7 @@ def api_get_actors_uncensored():
     except Exception as e:
         return jsonify({"success": 0, "error": str(e)}), 500
 
-# ================= 新增：欧美演员 API =================
+# ================= 欧美演员 API =================
 
 @app.route('/api/actors/eu/female', methods=['GET'])
 def api_get_actors_eu_female():
@@ -654,7 +693,7 @@ def api_get_actors_eu_male():
         return jsonify({"success": 0, "error": str(e)}), 500
 
 
-# ================= 新增：系列列表页面相关路由 =================
+# ================= 系列列表页面相关路由 =================
 
 @app.route('/series')
 def series_page_list():
@@ -754,7 +793,7 @@ def api_search_magnet():
     params = {
         "q": q,
         "sort_by": sort_by,
-        "from_recent": "true",    # 抓包固定参数
+        "from_recent": "true",
         "page": page,
         "limit": limit
     }
@@ -841,7 +880,7 @@ def api_get_recommend_period():
     except Exception as e:
         return jsonify({"success": 0, "error": str(e)}), 500
 
-# ================= 新增：相关清单 =================
+# ================= 相关清单 =================
 
 @app.route('/api/movie/<movie_id>/related-lists', methods=['GET'])
 def api_get_related_lists(movie_id):
@@ -875,7 +914,7 @@ def api_get_my_watchlist():
         "order_by": order_by,
         "page": page,
         "limit": limit,
-        "star": ""   # 抓包中固定为空
+        "star": ""
     }
     try:
         data = jav_client._get("/v2/users/review_movies", params=params)
@@ -1040,7 +1079,8 @@ def api_delete_list(list_id):
     except Exception as e:
         return jsonify({"success": 0, "error": str(e)}), 500
 
-# 我的收藏 - 演员
+# ================= 我的收藏 - 演员 =================
+
 @app.route('/my/collected_actors')
 def my_collected_actors_page():
     """渲染我的收藏演员页面"""
@@ -1181,7 +1221,7 @@ def api_review_like(movie_id, review_id):
     except Exception as e:
         return jsonify({"success": 0, "error": str(e)}), 500
 
-# ================= 新增：我的收藏 - 番号 =================
+# ================= 我的收藏 - 番号 =================
 
 @app.route('/my/collected_codes')
 def my_collected_codes_page():
@@ -1224,7 +1264,7 @@ def api_batch_uncollect_collected_codes():
         return jsonify({"success": 0, "message": str(e)})
 
 
-# ================= 新增：我的系列收藏路由 =================
+# ================= 我的系列收藏路由 =================
 
 @app.route('/my/collected_series')
 def my_collected_series_page():
@@ -1253,7 +1293,7 @@ def api_collect_series(series_id):
     except Exception as e:
         return jsonify({"success": 0, "error": str(e)}), 500
 
-# ================= 新增：我的收藏 - 导演 =================
+# ================= 我的收藏 - 导演 =================
 @app.route('/my/collected_directors')
 def my_collected_directors_page():
     """渲染我的收藏导演页面"""
@@ -1295,7 +1335,7 @@ def api_batch_uncollect_collected_directors():
     except Exception as e:
         return jsonify({"success": 0, "message": str(e)})
 
-# ================= 新增：片商收藏相关路由 =================
+# ================= 片商收藏相关路由 =================
 
 @app.route('/my/collected_makers')
 def my_collected_makers_page():
@@ -1324,96 +1364,271 @@ def api_get_my_collected_makers():
     except Exception as e:
         return jsonify({"success": 0, "message": str(e)})
 
-# 识图
+# ================= 识图 =================
+
 @app.route('/search_image')
 def search_image():
     """以图识图独立页面"""
     return render_template('search_image.html')
 
-def is_valid_image(data: bytes) -> bool:
-    """检查数据是否为有效的图片（JPEG/PNG/WEBP）"""
-    if len(data) < 12:
-        return False
-    # JPEG: FF D8 FF
-    if data[:3] == b'\xff\xd8\xff':
-        return True
-    # PNG: 89 50 4E 47
-    if data[:4] == b'\x89PNG':
-        return True
-    # WEBP: RIFF????WEBP (前4字节 RIFF, 第8-11字节 WEBP)
-    if data[:4] == b'RIFF' and data[8:12] == b'WEBP':
-        return True
-    # 可选：用 PIL 再次验证（更严格）
-    try:
-        Image.open(io.BytesIO(data)).verify()
-        return True
-    except Exception:
+# ================= 解密图片 =================
+
+def _fetch_image_payload(url: str, headers: dict) -> bytes:
+    with _download_semaphore:
+        with _session.get(url, headers=headers, timeout=(5, 30), stream=True) as resp:
+            resp.raise_for_status()
+            return b"".join(resp.iter_content(chunk_size=8192))
+
+
+def _decode_image_payload(payload: bytes):
+    """与油猴脚本一致：
+    - 已是合法图片 → 原样返回，不解密
+    - 否则首字节为 key，逐字节 XOR
+    """
+    if not payload or len(payload) < 4:
+        raise ValueError("加密数据过短")
+
+    pre_mime = image_mime(payload)
+    if pre_mime:
+        return payload, pre_mime
+
+    key = payload[0]
+    decrypted = bytes(b ^ key for b in payload[1:])
+
+    mime = image_mime(decrypted)
+    if not mime:
+        raise ValueError("解密后不是已知图片格式")
+
+    return decrypted, mime
+
+
+def _with_fresh_param(url: str) -> str:
+    """给 URL 追加时间戳参数，用于不完整时重新请求。"""
+    sep = '&' if '?' in url else '?'
+    return f"{url}{sep}_lj_cover={int(time.time() * 1000)}"
+
+
+# ================= 图片识别与完整性校验（对齐油猴脚本） =================
+
+_END_SIGNATURE_WINDOW = 64          # 末尾签名搜索窗口
+_SMALL_IMAGE_THRESHOLD = 1024       # 小于该值直接视为完整
+_PNG_IEND_SIG = b'IEND\xaeB`\x82'   # PNG IEND chunk 尾部 8 字节
+
+# 魔数：与油猴脚本一致
+# JPEG: FF D8 FF
+# PNG : 89 50 4E 47
+# WEBP: 52 49 46 46 (RIFF)
+_IMAGE_SIGNATURES = (
+    ('image/jpeg', b'\xff\xd8\xff'),
+    ('image/png',  b'\x89PNG'),
+    ('image/webp', b'RIFF'),
+)
+
+# JPEG SOF 帧标记：C0-C3, C5-C7, C9-CB, CD-CF
+_JPEG_FRAME_MARKERS = frozenset({
+    0xC0, 0xC1, 0xC2, 0xC3,
+    0xC5, 0xC6, 0xC7,
+    0xC9, 0xCA, 0xCB,
+    0xCD, 0xCE, 0xCF,
+})
+
+
+def image_mime(data: bytes) -> str:
+    """按字节魔数识别图片类型；WebP 额外检查 'WEBP' 标记。与油猴脚本 imageMime 一致。"""
+    if not data or len(data) < 4:
+        return ''
+    for mime, sig in _IMAGE_SIGNATURES:
+        if data[:len(sig)] == sig:
+            if mime == 'image/webp':
+                if len(data) < 12 or data[8:12] != b'WEBP':
+                    return ''
+            return mime
+    return ''
+
+
+def _has_signature_near_end(data: bytes, sig: bytes) -> bool:
+    """在末尾 _END_SIGNATURE_WINDOW 字节内查找签名。"""
+    start = max(0, len(data) - _END_SIGNATURE_WINDOW)
+    for i in range(len(data) - len(sig), start - 1, -1):
+        if data[i:i + len(sig)] == sig:
+            return True
+    return False
+
+
+def _is_complete_jpeg(data: bytes) -> bool:
+    """解析 JPEG 段结构：必须有 SOF 帧标记、SOS，且 EOI 后剩余 <= 64 字节。"""
+    n = len(data)
+    i = 2
+    has_frame = False
+    has_sos = False
+
+    while i < n:
+        if data[i] != 0xFF:
+            return False
+        while i < n and data[i] == 0xFF:
+            i += 1
+        if i >= n:
+            return False
+
+        marker = data[i]
+        i += 1
+
+        if marker == 0:
+            return False
+        if marker == 0xD9:  # EOI
+            return has_frame and has_sos and (n - i) <= _END_SIGNATURE_WINDOW
+        if marker == 0xD8 or 0xD0 <= marker <= 0xD7:
+            return False
+        if marker == 0x01:
+            continue
+        if marker < 0xC0 or i + 2 > n:
+            return False
+
+        length = (data[i] << 8) | data[i + 1]
+        if length < 2 or i + length > n:
+            return False
+
+        if marker in _JPEG_FRAME_MARKERS:
+            has_frame = True
+
+        i += length
+
+        if marker == 0xDA:  # SOS
+            has_sos = True
+            while i < n - 1:
+                if data[i] != 0xFF:
+                    i += 1
+                    continue
+                nxt = data[i + 1]
+                if nxt == 0 or 0xD0 <= nxt <= 0xD7:
+                    i += 2
+                    continue
+                if nxt == 0xFF:
+                    i += 1
+                    continue
+                break
+            if i >= n - 1:
+                return False
+
+    return False
+
+
+def is_complete_image(data: bytes) -> bool:
+    """与油猴脚本 isCompleteImage 一致。"""
+    if not data:
         return False
 
-def decrypt_image(enc: bytes) -> bytes:
-    """解密异或加密的图片数据，首字节为密钥"""
-    if not enc:
-        return b""
-    key = enc[0]
-    return bytes(b ^ key for b in enc[1:])
+    mime = image_mime(data)
+    if not mime:
+        return False
 
-@app.route('/api/image_proxy')
-def image_proxy():
-    max_retries = 3
-    retry_delay = 1  # 初始延迟秒数
+    if len(data) < _SMALL_IMAGE_THRESHOLD:
+        return True
+
+    if mime == 'image/jpeg':
+        return _is_complete_jpeg(data)
+
+    if mime == 'image/png':
+        return _has_signature_near_end(data, _PNG_IEND_SIG)
+
+    if mime == 'image/webp':
+        size = struct.unpack_from('<I', data, 4)[0]
+        total = size + 8
+        return total <= len(data) and total >= len(data) - _END_SIGNATURE_WINDOW
+
+    return True
+
+@app.route('/api/image')
+def image():
     url = request.args.get('url')
     if not url:
         return jsonify({"success": 0, "error": "缺少 url 参数"}), 400
-
     if 'c0.jdbstatic.com' in url:
         return redirect(url)
 
+    headers = {
+        "User-Agent": "Dart/3.5 (dart:io)",
+        "accept-encoding": "identity",
+        "Connection": "keep-alive",
+    }
+
     last_exception = None
-    for attempt in range(1, max_retries + 1):
-        try:
-            # 下载加密数据
-            resp = requests.get(
-                url,
-                timeout=15,
-                headers={"User-Agent": "Dart/3.5 (dart:io)"}
-            )
-            resp.raise_for_status()
+    max_network_retries = 3
 
-            encrypted_data = resp.content
-            decrypted = decrypt_image(encrypted_data)  # 自定义函数
+    # 先原 URL，再 fresh URL；解密失败 / 不完整都会进入下一次 fresh 尝试
+    for attempt_url in (url, _with_fresh_param(url)):
+        for attempt in range(1, max_network_retries + 1):
+            try:
+                payload = _fetch_image_payload(attempt_url, headers)
+                decrypted, mime = _decode_image_payload(payload)
 
-            # 验证解密结果
-            if not is_valid_image(decrypted):
-                raise ValueError("解密后数据不是有效的图片")
+                if not is_complete_image(decrypted):
+                    last_exception = ValueError("图片不完整")
+                    break  # 换 fresh URL，不再重试当前 URL
 
-            # 成功，根据后缀返回对应 MIME
-            mimetype = 'image/jpeg'
-            if url.lower().endswith('.png'):
-                mimetype = 'image/png'
-            elif url.lower().endswith('.webp'):
-                mimetype = 'image/webp'
+                response = Response(decrypted, mimetype=mime)
+                response.headers['Cache-Control'] = 'public, max-age=2592000'
+                return response
 
-            # 构建响应，设置缓存头（强缓存 30 天）
-            response = Response(decrypted, mimetype=mimetype)
-            response.headers['Cache-Control'] = 'public, max-age=2592000'  # 30天
+            except requests.exceptions.HTTPError as e:
+                if e.response is not None and 400 <= e.response.status_code < 500:
+                    app.logger.error("图片最终失败(4xx): url=%s status=%s", url, e.response.status_code)
+                    return jsonify({"success": 0, "error": f"下载失败: HTTP {e.response.status_code}"}), 502
+                last_exception = e
+                if attempt < max_network_retries:
+                    time.sleep(0.3 * attempt)
 
-            return response
+            except Exception as e:
+                # 解密失败：记录后换 fresh URL
+                last_exception = e
+                break
 
-        except Exception as e:
-            last_exception = e
-            if attempt < max_retries:
-                # 指数退避：1s, 2s, 4s...
-                sleep_time = retry_delay * (2 ** (attempt - 1))
-                time.sleep(sleep_time)
-            # 否则继续下一次尝试
+    app.logger.error("图片最终失败: url=%s err=%s", url, last_exception)
+    return jsonify({"success": 0, "error": f"下载/解密失败: {last_exception}"}), 500
 
-    # 所有重试均失败
-    return jsonify({
-        "success": 0,
-        "error": f"下载或解密失败: {str(last_exception)}",
-        "retries": max_retries
-    }), 500
+# ================= 内置识图（演员 & 影片） =================
+
+@app.route('/api/search_image', methods=['POST'])
+def api_search_image():
+    """以图识图：转发前端上传的图片到后端 /v2/search_image"""
+    target = request.args.get('target', 'movie')
+    if target not in ('movie', 'actor'):
+        return jsonify({"success": 0, "error": "target 必须是 movie 或 actor"}), 400
+
+    if 'image' not in request.files:
+        return jsonify({"success": 0, "error": "缺少图片文件"}), 400
+
+    f = request.files['image']
+    if not f or not f.filename:
+        return jsonify({"success": 0, "error": "文件为空"}), 400
+
+    image_bytes = f.read()
+    if not image_bytes:
+        return jsonify({"success": 0, "error": "图片内容为空"}), 400
+    # 简单限制 20MB，防止内存爆掉
+    if len(image_bytes) > 20 * 1024 * 1024:
+        return jsonify({"success": 0, "error": "图片过大（>20MB）"}), 400
+
+    filename = f.filename
+    mime_type = f.mimetype or "image/jpeg"
+
+    try:
+        data = jav_client.search_image(image_bytes, filename, mime_type, target=target)
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({"success": 0, "error": str(e)}), 500
+
+# ================= 版本信息 =================
+
+@app.context_processor
+def inject_version():
+    return {
+        "APP_VERSION": cfg.VERSION,
+        "APP_BUILD_DATE": getattr(cfg, "BUILD_DATE", ""),
+        "APP_GITHUB_URL": getattr(cfg, "GITHUB_URL", ""),
+    }
 
 
 if __name__ == '__main__':
     app.run(debug=True, host=cfg.HOST, port=cfg.PORT)
+

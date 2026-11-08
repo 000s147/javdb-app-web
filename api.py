@@ -30,7 +30,6 @@ class JavJHSClient:
 
         self._load_token()
 
-    # ===== token 持久化 =====
     def _load_token(self):
         if os.path.exists(cfg.TOKEN_FILE):
             with open(cfg.TOKEN_FILE, "r", encoding="utf-8") as f:
@@ -43,14 +42,12 @@ class JavJHSClient:
         with open(cfg.TOKEN_FILE, "w", encoding="utf-8") as f:
             json.dump({"token": self.token}, f)
 
-    # ===== jdsignature =====
     def build_jdsignature(self):
         curr = int(time.time())
         raw = f"{curr}{self.SECRET}"
         md5_val = hashlib.md5(raw.encode()).hexdigest()
         return f"{curr}.lpw6vgqzsp.{md5_val}"
 
-    # ===== 登录 =====
     def login(self):
         """
         return: (token, jdsignature)
@@ -59,11 +56,11 @@ class JavJHSClient:
             f"{self.API}/v1/sessions"
             f"?username={self.username}"
             f"&password={self.password}"
-            f"&device_uuid=08d5cd7f-af0f-4864-9efd-d3f87691112a"
+            f"&device_uuid=375d932c-24b8-4c1e-b79f-29e7d22f68cf"
             f"&device_name=XiaoMi"
             f"&device_model=realme/RMX6688"
             f"&platform=android"
-            f"&system_version=14"
+            f"&system_version=15"
             f"&app_version=official"
             f"&app_version_number=1.9.35"
             f"&app_channel=official"
@@ -84,7 +81,6 @@ class JavJHSClient:
         self._save_token()
         return self.token, jdsignature
 
-    # ===== 核心请求封装 =====
     def _request(self, method: str, path: str, **kwargs):
         """
         统一的请求核心逻辑，处理签名、Token验证、重登录以及网络重试
@@ -175,7 +171,6 @@ class JavJHSClient:
         # 理论上循环结束而未返回的情况（如所有尝试都遇到令牌失效且未抛出），抛出错误
         raise RuntimeError("重试次数已用尽，未成功获取数据")
 
-    # ===== 请求封装 =====
     def _get(self, path, params=None):
         return self._request("GET", path, params=params)
 
@@ -188,7 +183,6 @@ class JavJHSClient:
     def _patch(self, path, data=None, json=None, params=None):
         return self._request("PATCH", path, data=data, json=json, params=params)
 
-    # 👇 追加以下新方法 👇
     def collect_actor(self, actor_id: str, action: str = "collect"):
         """
         收藏或取消收藏演员
@@ -238,7 +232,6 @@ class JavJHSClient:
             }
         )
 
-    # 👇 追加下面这个新方法：
     def playback_rankings(self, period="daily", filter_by="all"):
         return self._get(
             "/v1/rankings/playback",
@@ -291,7 +284,6 @@ class JavJHSClient:
             files={"ids": (None, ids_str)}
         )
 
-    # ================= 新增：系列收藏相关 =================
     def collect_series(self, series_id: str, action: str = "collect"):
         """
         收藏或取消收藏系列
@@ -314,7 +306,6 @@ class JavJHSClient:
             }
         )
 
-    # ================= 新增：导演收藏相关 =================
     def collect_director(self, director_id: str, action: str = "collect"):
         """
         收藏或取消收藏导演
@@ -348,7 +339,6 @@ class JavJHSClient:
             files={"ids": (None, ids_str)}
         )
 
-    # ================= 新增：片商收藏相关 =================
     def collect_maker(self, maker_id: str, action: str = "collect"):
         """
         收藏或取消收藏片商
@@ -369,4 +359,23 @@ class JavJHSClient:
                 "page": page,
                 "limit": limit
             }
+        )
+
+    def search_image(self, image_bytes: bytes, filename: str, mime_type: str, target: str = "movie"):
+        """
+        以图识图
+        :param image_bytes: 图片二进制内容
+        :param filename:    原始文件名（如 img_5872.jpg）
+        :param mime_type:   MIME（如 image/jpeg / image/png）
+        :param target:      'movie' 识影片 / 'actor' 识演员
+        """
+        files = {
+            "image": (filename or "image.jpg", image_bytes, mime_type or "image/jpeg")
+        }
+        return self._request(
+            "POST",
+            "/v2/search_image",
+            files=files,
+            params={"target": target},
+            timeout=60,
         )
