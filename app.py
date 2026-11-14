@@ -1,6 +1,6 @@
 import requests
 from flask import Flask, render_template, request, jsonify, redirect, url_for, Response, g
-from api import JavJHSClient
+from api import JavClient
 import config as cfg
 import time
 import threading
@@ -10,30 +10,23 @@ import logging
 import struct
 
 
-# 限制同时下载的图片数（关键！）
-_download_semaphore = threading.BoundedSemaphore(6)
-
-# 全局 Session 复用连接池
-_session = requests.Session()
-_session.mount("https://", HTTPAdapter(pool_connections=10, pool_maxsize=20))
-_session.mount("http://", HTTPAdapter(pool_connections=10, pool_maxsize=20))
-
-
 app = Flask(__name__)
-app.config['MAX_CONTENT_LENGTH'] = 25 * 1024 * 1024  # 25MB
 
 
+""" ↓ 日志 """
 logging.basicConfig(
     level=logging.WARNING,
     format='%(name)s: %(message)s',
 )
+
+# 屏蔽 werkzeug 自带的请求日志，避免与 access logger 重复
+logging.getLogger('werkzeug').setLevel(logging.WARNING)
 
 logger = logging.getLogger('access')
 logger.setLevel(logging.INFO)
 
 # 让 Waitress 的启动信息 / 运行信息可见，但不放行 urllib3、requests 的 INFO
 logging.getLogger('waitress').setLevel(logging.INFO)
-
 
 @app.before_request
 def log_request_start():
@@ -52,9 +45,23 @@ def log_request_end(response):
         response.status_code, elapsed,
     )
     return response
+""" ↑ 日志 """
+
+""" ↓ 解密图片 """
+# 限制单个 HTTP 请求体的最大大小为25MB
+app.config['MAX_CONTENT_LENGTH'] = 25 * 1024 * 1024  # 25MB
+
+# 限制同时下载的图片数
+_download_semaphore = threading.BoundedSemaphore(20)
+
+# 全局 Session 复用连接池
+_session = requests.Session()
+_session.mount("https://", HTTPAdapter(pool_connections=10, pool_maxsize=20))
+_session.mount("http://", HTTPAdapter(pool_connections=10, pool_maxsize=20))
+""" ↑ 解密图片 """
 
 
-jav_client = JavJHSClient()
+jav_client = JavClient()
 
 
 @app.route('/')
@@ -159,8 +166,8 @@ def get_movie_reviews(movie_id):
         return jsonify({"success": 0, "error": str(e)}), 500
 
 @app.route('/tags')
-def tag_search():
-    return render_template('tag_search.html')
+def tags():
+    return render_template('tags.html')
 
 @app.route('/api/tags', methods=['GET'])
 def get_tags():
@@ -234,7 +241,7 @@ def api_search_movies():
     params = {
         "q": q,
         "from_recent": "false",
-        "type": search_type,  # 动态传入搜索类型
+        "type": search_type,
         "movie_type": movie_type,
         "movie_sort_by": movie_sort_by,
         "movie_filter_by": movie_filter_by,
@@ -607,7 +614,7 @@ def api_get_actresses():
     hips = request.args.get('hips', '')
 
     # 构建请求参数
-    params = {
+    params: dict[str, int | str] = {
         "type": req_type,
         "gender": gender,
         "page": page,
@@ -1381,7 +1388,7 @@ def _fetch_image_payload(url: str, headers: dict) -> bytes:
 
 
 def _decode_image_payload(payload: bytes):
-    """与油猴脚本一致：
+    """
     - 已是合法图片 → 原样返回，不解密
     - 否则首字节为 key，逐字节 XOR
     """
@@ -1408,13 +1415,13 @@ def _with_fresh_param(url: str) -> str:
     return f"{url}{sep}_lj_cover={int(time.time() * 1000)}"
 
 
-# ================= 图片识别与完整性校验（对齐油猴脚本） =================
+# ================= 图片识别与完整性校验 =================
 
 _END_SIGNATURE_WINDOW = 64          # 末尾签名搜索窗口
 _SMALL_IMAGE_THRESHOLD = 1024       # 小于该值直接视为完整
 _PNG_IEND_SIG = b'IEND\xaeB`\x82'   # PNG IEND chunk 尾部 8 字节
 
-# 魔数：与油猴脚本一致
+# 魔数：
 # JPEG: FF D8 FF
 # PNG : 89 50 4E 47
 # WEBP: 52 49 46 46 (RIFF)
@@ -1434,7 +1441,7 @@ _JPEG_FRAME_MARKERS = frozenset({
 
 
 def image_mime(data: bytes) -> str:
-    """按字节魔数识别图片类型；WebP 额外检查 'WEBP' 标记。与油猴脚本 imageMime 一致。"""
+    """按字节魔数识别图片类型；WebP 额外检查 'WEBP' 标记。"""
     if not data or len(data) < 4:
         return ''
     for mime, sig in _IMAGE_SIGNATURES:
@@ -1514,7 +1521,6 @@ def _is_complete_jpeg(data: bytes) -> bool:
 
 
 def is_complete_image(data: bytes) -> bool:
-    """与油猴脚本 isCompleteImage 一致。"""
     if not data:
         return False
 

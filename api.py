@@ -8,7 +8,7 @@ import config as cfg
 from utils import show_log
 
 
-class JavJHSClient:
+class JavClient:
     API = f"https://{cfg.API_HOST}/api"
 
     SECRET = (
