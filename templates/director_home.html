@@ -304,6 +304,11 @@
             transform: translateY(-2px);
             box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5);
         }
+
+        /* ===== loading） ===== */
+        .text-primary { color: #4f46e5 !important; }
+        .spinner-border.text-primary { color: #667eea !important; }
+
     </style>
 {% endblock %}
 
@@ -319,7 +324,7 @@
             <!-- 右侧内容 -->
             <div class="flex-grow-1" style="min-width: 0;">
                 <!-- 紫蓝渐变标题 -->
-                <h2 id="directorName" class="mb-3 fw-bold text-break" style="font-size: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 0.5px;"></h2>
+                <h2 id="directorName" class="mb-3 fw-bold text-break" style="font-size: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 0.5px;"></h2>
                 
                 <!-- 按钮与胶囊同行 -->
                 <div class="d-flex flex-wrap align-items-center gap-2 gap-md-3">

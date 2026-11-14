@@ -55,6 +55,7 @@
             font-size: 1.4rem;
             background: var(--brand-grad);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             letter-spacing: .5px;
             transition: transform .25s;
@@ -150,7 +151,7 @@
         .card-link-block { display: block; text-decoration: none; color: inherit; }
         /* ---- 容器：兼顾大屏与小屏 ---- */
         .container {
-            max-width: min(1500px, 92vw) !important;
+            max-width: min(1600px, 92vw) !important;
         }
         /* 其他全局样式 */
         img { max-width: 100%; }
@@ -562,7 +563,7 @@
                     </li>
 
                     <li class="nav-item">
-                        <a class="nav-link {% if request.path == '/tags' %}active{% endif %}" href="{{ url_for('tag_search') }}">🏷️ 类别</a>
+                        <a class="nav-link {% if request.path == '/tags' %}active{% endif %}" href="{{ url_for('tags') }}">🏷️ 类别</a>
                     </li>
 
                     <li class="nav-item">

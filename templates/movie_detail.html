@@ -157,12 +157,6 @@
             font-size: 0.85rem;
             font-weight: 500;
         }
-        .actor-gender-f {
-            /* 女性可加额外标识，但我们用背景色区分 */
-        }
-        .actor-gender-m {
-            /* 男性 */
-        }
         /* 根据性别区分背景色（可选） */
         .actor-item.female {
             background: #fce4ec;   /* 浅粉 */
@@ -326,12 +320,13 @@
         
         /* 清单标题：减轻字重，微调字号和颜色 */
         .related-list-title {
-            font-size: 0.99rem;       /* 稍微调小一点点 */
+            font-size: 1rem;
             font-weight: 500;         /* 👈 从 600 降为 500，去掉厚重感 */
             color: #374151;           /* 👈 从纯黑 #1f2937 改为高级灰，视觉更轻 */
             letter-spacing: 0.2px;    /* 稍微增加一点字间距，让字松透气 */
             margin-bottom: 3px;
             display: -webkit-box;
+            line-clamp: 1;
             -webkit-line-clamp: 1;
             -webkit-box-orient: vertical;
             overflow: hidden;
@@ -888,7 +883,10 @@
                         <h4 id="detailTitle" class="fw-bold mb-3"></h4>
 
                         <div class="col-md-7">
-                            <img id="detailCover" onerror="this.src='{{ url_for('static', filename='images/noimage.jpg') }}'" class="detail-cover">
+                            <img id="detailCover"
+                                class="detail-cover"
+                                data-fallback="{{ url_for('static', filename='images/noimage.jpg') }}"
+                                onerror="this.onerror=null; this.src=this.dataset.fallback">
                         </div>
                         <div class="col-md-5">
 
@@ -910,7 +908,6 @@
                                 <li class="list-group-item"><strong>发行日期：</strong> <span id="detailDate"></span></li>
                                 <li class="list-group-item"><strong>时长：</strong> <span id="detailDuration"></span></li>
                                 <li class="list-group-item"><strong>评分：</strong> <span id="detailScore" class="badge bg-warning text-dark"></span></li>
-                                <li class="list-group-item"><strong>人气：</strong> <span id="detailWantWatch"></span> 人想看, <span id="detailWatched"></span> 人看过</li>
                                 <!-- 影片类型：0有码 1无码 2欧美 3FC2 -->
                                 <li class="list-group-item"><strong>影片类型：</strong> <span id="detailType"></span></li>
                                 <!-- 系列 -->
@@ -927,6 +924,7 @@
                                 </li>
                                 <!-- 类别 -->
                                 <li class="list-group-item" id="tagsRow"><strong style="min-width: 50px;">类别：</strong> <span id="detailTags"></span></li>
+								<li class="list-group-item"><span id="detailWantWatch"></span>人想看, <span id="detailWatched"></span>人看过</li>
                             </ul>
                             <div id="actionGroup" class="mt-3">
                                 <button id="watchlistBtn" class="btn btn-brand-outline" onclick="toggleWatchlist()">加载中...</button>
@@ -1000,7 +998,7 @@
             <!-- 相关清单 -->
             <div id="relatedListsSection" class="mt-4">
                 <h4 class="fw-bold mb-3">相关清单</h4>
-                <div id="relatedListsContainer" class="row g-3 mb-3"></div>
+                <div id="relatedListsContainer" class="row g-2 mb-3"></div>
                 <div id="relatedListsLoading" class="text-center py-2 d-none">
                     <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
                     <span class="ms-2">加载中...</span>
@@ -1106,7 +1104,11 @@
     <div id="lightboxOverlay" class="lightbox-overlay d-none">
         <a class="lightbox-close" onclick="closeLightbox()">&times;</a>
         <div class="lightbox-wrapper" onclick="closeLightbox(event)">
-            <img id="lightboxImage" class="lightbox-img d-none" decoding="async" onerror="this.src='{{ url_for('static', filename='images/noimage.jpg') }}'">
+            <img id="lightboxImage"
+                class="lightbox-img d-none"
+                decoding="async"
+                data-fallback="{{ url_for('static', filename='images/noimage.jpg') }}"
+                onerror="this.onerror=null; this.src=this.dataset.fallback">
             <video id="lightboxVideo" class="lightbox-img d-none" controls preload="auto"></video>
         </div>
     </div>
