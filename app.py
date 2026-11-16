@@ -8,9 +8,11 @@ from requests.adapters import HTTPAdapter
 from datetime import datetime
 import logging
 import struct
+from api_docs import API_DOCS
 
 
 app = Flask(__name__)
+jav_client = JavClient()
 
 
 """ ↓ 日志 """
@@ -59,9 +61,6 @@ _session = requests.Session()
 _session.mount("https://", HTTPAdapter(pool_connections=10, pool_maxsize=20))
 _session.mount("http://", HTTPAdapter(pool_connections=10, pool_maxsize=20))
 """ ↑ 解密图片 """
-
-
-jav_client = JavClient()
 
 
 @app.route('/')
@@ -1633,6 +1632,13 @@ def inject_version():
         "APP_BUILD_DATE": getattr(cfg, "BUILD_DATE", ""),
         "APP_GITHUB_URL": getattr(cfg, "GITHUB_URL", ""),
     }
+
+# ================= 文档 =================
+
+@app.route('/api/docs')
+def api_docs_page():
+    """API 文档页"""
+    return render_template('api_docs.html', api_docs=API_DOCS)
 
 
 if __name__ == '__main__':

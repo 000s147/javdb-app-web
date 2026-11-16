@@ -25,9 +25,9 @@ PORT = 9560
 
 
 # 版本号
-VERSION = "1.1.1"
+VERSION = "1.1.2"
 # 构建日期
-BUILD_DATE = "2026-11-14"
+BUILD_DATE = "2026-11-16"
 # 项目主页
 GITHUB_URL = "https://github.com/000s147/javdb-app-web"
 
