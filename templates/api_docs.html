@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}API 文档 - JavDB{% endblock %}
+
+{% block styles %}
+<style>
+    .docs-sidebar {
+        position: sticky; top: 90px;
+        max-height: calc(100vh - 110px);
+        overflow-y: auto;
+    }
+    .docs-sidebar .nav-link {
+        color: #4b5563; padding: 6px 12px;
+        border-radius: 8px; font-size: .9rem;
+        transition: all .2s;
+    }
+    .docs-sidebar .nav-link:hover {
+        background: #eef2ff; color: #4f46e5;
+    }
+    .endpoint-card {
+        border: 1px solid #e5e7eb; border-radius: 10px;
+        margin-bottom: 16px; background: #fff;
+        box-shadow: 0 1px 3px rgba(0,0,0,.03);
+    }
+    .endpoint-header {
+        padding: 14px 18px; cursor: pointer;
+        display: flex; align-items: center; gap: 12px;
+        transition: background .2s;
+    }
+    .endpoint-header:hover { background: #f9fafb; }
+    .endpoint-body { padding: 0 18px 18px; border-top: 1px dashed #e5e7eb; }
+    .method-badge {
+        min-width: 62px; text-align: center;
+        font-weight: 700; font-size: .72rem;
+        padding: 4px 0; border-radius: 6px;
+    }
+    .method-GET    { background:#dcfce7; color:#166534; }
+    .method-POST   { background:#fef3c7; color:#92400e; }
+    .method-DELETE { background:#fee2e2; color:#991b1b; }
+    .method-PATCH  { background:#e0e7ff; color:#3730a3; }
+    .path-code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        color: #1f2937; font-size: .92rem; font-weight: 600;
+        word-break: break-all;
+    }
+    .param-table th { background:#f9fafb; font-size:.82rem; color:#6b7280; font-weight:600; }
+    .param-table td { font-size:.86rem; vertical-align: middle; }
+    .type-tag {
+        display:inline-block; font-size:.72rem;
+        background:#f3f4f6; color:#4b5563;
+        padding: 1px 8px; border-radius: 10px;
+        font-family: ui-monospace, monospace;
+    }
+    .req-yes { color:#dc2626; font-weight:700; }
+    .req-no  { color:#9ca3af; }
+    pre.code-block {
+        background: #0f172a; color: #e2e8f0;
+        padding: 12px 14px; border-radius: 8px;
+        font-size: .82rem; line-height: 1.55;
+        overflow-x: auto; margin: 8px 0 0;
+    }
+    pre.code-block .copy-btn {
+        float: right; margin-top: -4px;
+        background: #1e293b; color: #94a3b8; border: 1px solid #334155;
+        font-size: .72rem; padding: 2px 8px; border-radius: 4px; cursor: pointer;
+    }
+    pre.code-block .copy-btn:hover { color: #fff; border-color: #64748b; }
+    .category-title {
+        font-weight: 700; color: #374151;
+        border-left: 4px solid #667eea;
+        padding-left: 12px; margin-bottom: 18px;
+        margin-top: 40px;
+    }
+    .category-title:first-child { margin-top: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- 左侧导航 -->
+    <div class="col-lg-3">
+        <div class="docs-sidebar card border-0 shadow-sm">
+            <div class="card-body p-3">
+                <h6 class="text-uppercase text-muted small fw-bold mb-3" style="letter-spacing:1px;">目录</h6>
+                <ul class="nav flex-column">
+                    {% for cat in api_docs %}
+                    <li class="nav-item mb-1">
+                        <a class="nav-link" href="#cat-{{ loop.index }}">
+                            {{ cat.icon }} {{ cat.category }}
+                            <span class="badge bg-light text-secondary ms-1">{{ cat.endpoints|length }}</span>
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <hr>
+                <div class="small text-muted">
+                    共 <strong>{{ api_docs|map(attribute='endpoints')|map('length')|sum }}</strong> 个接口
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右侧内容 -->
+    <div class="col-lg-9">
+        <div class="mb-4">
+            <h1 class="fw-bold mb-2">📘 API 文档</h1>
+            <p class="text-muted mb-0">
+                本文档为 Javdb App 开放接口的用法说明，可直接用于前端联调或第三方集成。
+                所有接口默认返回 JSON（除 <code>/api/image</code> 返回二进制）。
+            </p>
+        </div>
+
+        <!-- 全局说明卡片 -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <h6 class="fw-bold mb-3">🌐 通用约定</h6>
+                <ul class="mb-0 small text-secondary" style="line-height:1.9;">
+                    <li><strong>Base URL：</strong> <code>http://&lt;host&gt;:&lt;port&gt;</code>（默认 <code>http://localhost:9560</code>）</li>
+                    <li><strong>响应格式：</strong> <code>{"success": 1|0, "data": {...}, "message"?: "..."}</code></li>
+                    <li><strong>鉴权：</strong> 后端 token 由 <code>api.py</code> 自动维护，前端无需传 token</li>
+                    <li><strong>分页：</strong> 统一使用 <code>page</code> + <code>limit</code></li>
+                    <li><strong>时间格式：</strong> <code>YYYY-MM-DD HH:mm:ss</code></li>
+                </ul>
+            </div>
+        </div>
+
+        {% for cat in api_docs %}
+        {% set cat_idx = loop.index %}
+        <div id="cat-{{ cat_idx }}">
+            <h4 class="category-title">{{ cat.icon }} {{ cat.category }}</h4>
+            {% for ep in cat.endpoints %}
+            {% set ep_idx = loop.index %}
+            <div class="endpoint-card">
+                <div class="endpoint-header" data-bs-toggle="collapse"
+                     data-bs-target="#ep-{{ cat_idx }}-{{ ep_idx }}">
+                    <span class="method-badge method-{{ ep.method }}">{{ ep.method }}</span>
+                    <span class="path-code">{{ ep.path }}</span>
+                    <span class="text-muted small ms-auto d-none d-md-inline">{{ ep.description }}</span>
+                </div>
+                <div class="collapse" id="ep-{{ cat_idx }}-{{ ep_idx }}">
+                    <div class="endpoint-body">
+                        <p class="mt-3 mb-3">{{ ep.description }}</p>
+
+                        {% if ep.params %}
+                        <h6 class="fw-bold small mb-2">参数</h6>
+                        <table class="table param-table mb-3">
+                            <thead>
+                                <tr>
+                                    <th>名称</th><th>类型</th><th>必填</th><th>说明</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for p in ep.params %}
+                                <tr>
+                                    <td><code>{{ p.name }}</code></td>
+                                    <td><span class="type-tag">{{ p.type }}</span></td>
+                                    <td>
+                                        {% if p.required %}
+                                            <span class="req-yes">是</span>
+                                        {% else %}
+                                            <span class="req-no">否</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ p.desc }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% else %}
+                        <p class="text-muted small mb-3">无参数</p>
+                        {% endif %}
+
+                        <h6 class="fw-bold small mb-1">请求示例</h6>
+                        <pre class="code-block"><button class="copy-btn" onclick="copyCode(this)">复制</button>{{ ep.example }}</pre>
+
+                        <h6 class="fw-bold small mb-1 mt-3">响应示例</h6>
+                        <pre class="code-block"><button class="copy-btn" onclick="copyCode(this)">复制</button>{{ ep.response }}</pre>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function copyCode(btn) {
+        const pre = btn.parentElement;
+        const clone = pre.cloneNode(true);
+        clone.querySelector('.copy-btn')?.remove();
+        const text = clone.textContent.trim();
+        navigator.clipboard.writeText(text).then(() => {
+            btn.textContent = '已复制';
+            setTimeout(() => btn.textContent = '复制', 1500);
+        });
+    }
+</script>
+{% endblock %}

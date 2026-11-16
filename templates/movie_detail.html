@@ -1076,7 +1076,7 @@
                             <!-- 这里的 id="newListName" 和原代码完全保持一致 -->
                             <input type="text" id="newListName" class="form-control" placeholder="输入新清单名称" maxlength="20">
                             <!-- 保留了原来的 onclick="createNewList()" -->
-                            <button class="btn btn-brand" onclick="createNewList()">创建并加入</button>
+                            <button class="btn btn-brand" id="createListBtn" onclick="createNewList()">创建并加入</button>
                         </div>
                         <!-- 保留了原来的反馈信息展示容器 -->
                         <div id="createListFeedback" class="small text-muted mt-1"></div>
@@ -1574,10 +1574,16 @@
                 return;
             }
             const movieId = window.location.pathname.split('/').pop();
-            const btn = document.querySelector('#listModal .btn-primary');
-            btn.disabled = true;
-            const originalText = btn.innerText;
-            btn.innerText = '创建中...';
+
+            // ===== 修复点：不要再用 '#listModal .btn-primary' =====
+            const btn = document.getElementById('createListBtn');
+            // 兜底：万一哪天又漏了 id，也不至于崩
+            if (!btn) { console.warn('createListBtn not found'); }
+
+            if (btn) btn.disabled = true;
+            const originalText = btn ? btn.innerText : '创建并加入';
+            if (btn) btn.innerText = '创建中...';
+
             document.getElementById('createListFeedback').innerHTML = '';
 
             try {
@@ -1594,13 +1600,14 @@
 
                 document.getElementById('createListFeedback').innerHTML = '<span class="text-success">✅ 创建成功，已加入该清单</span>';
                 input.value = '';
-                // 刷新清单列表
                 loadMovieLists();
             } catch (e) {
                 document.getElementById('createListFeedback').innerHTML = `<span class="text-danger">创建失败：${e.message}</span>`;
             } finally {
-                btn.disabled = false;
-                btn.innerText = originalText;
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = originalText;
+                }
             }
         }
 
