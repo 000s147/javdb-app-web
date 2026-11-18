@@ -348,10 +348,10 @@
                     const titleText = m.title || m.origin_title || '未知影片';
                     let titleNumberText = m.number ? `${m.number} ` : '';
 
-                    const tu = m.thumb_url || '';
-                    const newUrl = tu.replace("small_covers", "covers");
+                    const tb = m.thumb_url || '';
+                    const newtb = tb.replace("small_covers/", "covers/");
 
-                    const thumb = `/api/image?url=${encodeURIComponent(newUrl)}`;
+                    const thumb = `/api/image?url=${encodeURIComponent(newtb)}`;
 
                     const cardHtml = `
                         <div class="col-12">

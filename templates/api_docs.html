@@ -105,7 +105,7 @@
             <h1 class="fw-bold mb-2">📘 API 文档</h1>
             <p class="text-muted mb-0">
                 本文档为 Javdb App 开放接口的用法说明，可直接用于前端联调或第三方集成。
-                所有接口默认返回 JSON（除 <code>/api/image</code> 返回二进制）。
+                所有接口默认返回 JSON（除 <code>/api/image</code> 返回二进制图片）。
             </p>
         </div>
 
@@ -118,7 +118,18 @@
                     <li><strong>响应格式：</strong> <code>{"success": 1|0, "data": {...}, "message"?: "..."}</code></li>
                     <li><strong>鉴权：</strong> 后端 token 由 <code>api.py</code> 自动维护，前端无需传 token</li>
                     <li><strong>分页：</strong> 统一使用 <code>page</code> + <code>limit</code></li>
-                    <li><strong>时间格式：</strong> <code>YYYY-MM-DD HH:mm:ss</code></li>
+                    <li><strong>说明：</strong><br>
+                        <ul class="mb-0 text-secondary" style="line-height:1.9;">
+                            <li><code>type</code> 和 <code>movie_type</code> 参数代表 <code>all 全部 / 0 有码 / 1 无码 / 2 欧美 / 3 FC2 / 4 动漫</code>，但搜索页的 <code>type</code> 参数代表 <code>movie 影片 / actor 演员 / code 番号 / list 清单 / series 系列 / maker 片商 / director 导演</code></li>
+                            <li><code>sort_by</code> 参数代表 <code>update 更新时间 / release 发布时间 / score 评分 / hit 热度 / want_watch_count 想看人数 / watched_count 看过人数 / digit 番号 / create 创建时间</code></li>
+                            <li><code>movie_filter_by</code> 和 <code>filter_by</code> 参数代表 <code>all 全部 / can_play 可播放 / magnets 含磁链 / subtitle 含字幕 / single 单体影片</code></li>
+                            <li><code>order_by</code> 参数代表 <code>desc 倒序 / asc 正序</code></li>
+                            <li><code>base_tags</code> 和 <code>filter_tags</code> 参数代表 <code>p 可播放 / m 可下载 / c 含字幕 / s 单体影片 / i 含预览图 / v 含预览视频</code>，使用 <code>英文逗号</code> 分隔多个标签</li>
+                            <li><code>other_tags</code> 和 <code>tags</code> 参数代表标签id的集合，使用 <code>英文逗号</code> 分隔多个标签</li>
+                            <li>短评的 <code>period</code> 参数代表 <code>latest 最新 / weekly 上周热评 / monthly 月度热评 / quarterly 季度热评 / yearly 年度热评 / all 全部热评</code></li>
+                            <li>排行榜的 <code>period</code> 参数代表 <code>daily 日榜 / weekly 周榜 / monthly 月榜 / actor_monthly 演员月榜</code></li>
+                        </ul>
+                    </li>
                 </ul>
             </div>
         </div>

@@ -325,7 +325,7 @@
                     <input type="radio" class="btn-check filter-btn" name="filterBy" id="f_subtitle" value="subtitle">
                     <label class="btn custom-radio-label btn-sm" for="f_subtitle">含字幕</label>
                     <input type="radio" class="btn-check filter-btn" name="filterBy" id="f_single" value="single">
-                    <label class="btn custom-radio-label btn-sm" for="f_single">单体作品</label>
+                    <label class="btn custom-radio-label btn-sm" for="f_single">单体影片</label>
                 </div>
             </div>
 
@@ -801,9 +801,9 @@
 
             const params = new URLSearchParams();
             if (kw) params.set('q', kw);
-            // 只有非作品搜索才写入 type（作品是默认，省略）
+            // 只有非影片搜索才写入 type（影片是默认，省略）
             if (searchType !== 'movie') params.set('type', searchType);
-            // 仅当搜索类型为作品时，写入作品专用参数
+            // 仅当搜索类型为影片时，写入影片专用参数
             if (searchType === 'movie') {
                 if (movieType !== 'all') params.set('movie_type', movieType);
                 if (filterBy !== 'all') params.set('filter_by', filterBy);
