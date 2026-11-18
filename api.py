@@ -274,16 +274,6 @@ class JavClient:
             }
         )
 
-    def batch_uncollect_codes(self, code_ids: list):
-        """
-        批量取消收藏番号
-        """
-        ids_str = ",".join(code_ids)
-        return self._delete(
-            "/v1/codes/batch_uncollection",
-            files={"ids": (None, ids_str)}
-        )
-
     def collect_series(self, series_id: str, action: str = "collect"):
         """
         收藏或取消收藏系列
@@ -329,15 +319,6 @@ class JavClient:
             }
         )
 
-    def batch_uncollect_directors(self, director_ids: list):
-        """
-        批量取消收藏导演
-        """
-        ids_str = ",".join(director_ids)
-        return self._delete(
-            "/v1/directors/batch_uncollection",
-            files={"ids": (None, ids_str)}
-        )
 
     def collect_maker(self, maker_id: str, action: str = "collect"):
         """

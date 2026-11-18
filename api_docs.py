@@ -1,6 +1,6 @@
 # api_docs.py
 """
-API 文档元数据定义（完整版，收录全部 69 个接口）。
+API 文档元数据定义（完整版，收录全部 60+ 接口）。
 结构说明：
 - category: 分类名
 - icon:     分类图标（emoji）
@@ -84,7 +84,7 @@ API_DOCS = [
             {
                 "method": "POST",
                 "path": "/api/movie/<movie_id>/reviews/<review_id>/like",
-                "description": "点赞 / 取消点赞评论（toggle，无需 body）",
+                "description": "点赞评论（无需 body）",
                 "params": [
                     {"name": "movie_id", "type": "path", "required": True, "desc": "影片 ID"},
                     {"name": "review_id", "type": "path", "required": True, "desc": "评论 ID"},

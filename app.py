@@ -1,4 +1,5 @@
 import requests
+from urllib.parse import urlparse
 from flask import Flask, render_template, request, jsonify, redirect, url_for, Response, g
 from api import JavClient
 import config as cfg
@@ -54,10 +55,11 @@ def log_request_end(response):
 app.config['MAX_CONTENT_LENGTH'] = 25 * 1024 * 1024  # 25MB
 
 # 限制同时下载的图片数
-_download_semaphore = threading.BoundedSemaphore(20)
+_download_semaphore = threading.BoundedSemaphore(100)
 
 # 全局 Session 复用连接池
 _session = requests.Session()
+_session.trust_env = False
 _session.mount("https://", HTTPAdapter(pool_connections=10, pool_maxsize=20))
 _session.mount("http://", HTTPAdapter(pool_connections=10, pool_maxsize=20))
 """ ↑ 解密图片 """
@@ -1256,20 +1258,6 @@ def api_code_collect(code_id):
     except Exception as e:
         return jsonify({"success": 0, "message": str(e)})
 
-@app.route('/api/my/collected_codes/batch_uncollect', methods=['POST'])
-def api_batch_uncollect_collected_codes():
-    """批量取消收藏番号接口"""
-    data = request.json or {}
-    code_ids = data.get('ids', [])
-    if not code_ids:
-        return jsonify({"success": 0, "message": "未选择任何番号"})
-    try:
-        res = jav_client.batch_uncollect_codes(code_ids)
-        return jsonify(res)
-    except Exception as e:
-        return jsonify({"success": 0, "message": str(e)})
-
-
 # ================= 我的系列收藏路由 =================
 
 @app.route('/my/collected_series')
@@ -1324,19 +1312,6 @@ def api_director_collect(director_id):
     action = data.get('action', 'collect')  # 'collect' 或 'uncollect'
     try:
         res = jav_client.collect_director(director_id, action)
-        return jsonify(res)
-    except Exception as e:
-        return jsonify({"success": 0, "message": str(e)})
-
-@app.route('/api/my/collected_directors/batch_uncollect', methods=['POST'])
-def api_batch_uncollect_collected_directors():
-    """批量取消收藏导演接口"""
-    data = request.json or {}
-    director_ids = data.get('ids', [])
-    if not director_ids:
-        return jsonify({"success": 0, "message": "未选择任何导演"})
-    try:
-        res = jav_client.batch_uncollect_directors(director_ids)
         return jsonify(res)
     except Exception as e:
         return jsonify({"success": 0, "message": str(e)})
@@ -1552,9 +1527,10 @@ def image():
         return redirect(url)
 
     headers = {
-        "User-Agent": "Dart/3.5 (dart:io)",
+        "user-agent": "Dart/3.5 (dart:io)",
         "accept-encoding": "identity",
         "Connection": "keep-alive",
+        "host": urlparse(url).netloc,
     }
 
     last_exception = None
@@ -1643,4 +1619,3 @@ def api_docs_page():
 
 if __name__ == '__main__':
     app.run(debug=True, host=cfg.HOST, port=cfg.PORT)
-
